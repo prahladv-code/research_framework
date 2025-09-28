@@ -1,14 +1,20 @@
 import streamlit as st
 import threading
 import plotly.express as px
-from research_framework.analysis.calculate_metrics import CalculateMetrics
 import pandas as pd
 import os
 import plotly.io as pio
 import numpy as np
 import sys
 from pathlib import Path
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Add repo root to sys.path if it's not already there
+if REPO_ROOT not in sys.path:
+    sys.path.append(REPO_ROOT)
+
+# Now you can safely import your analysis module
+from analysis.calculate_metrics import CalculateMetrics
 pio.renderers.default = "browser"
 
 def homepage():
