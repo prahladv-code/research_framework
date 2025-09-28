@@ -1,0 +1,10 @@
+pandas
+numpy
+streamlit
+datetime
+threading
+multiprocessing
+duckdb
+plotly-express
+os
+sys
