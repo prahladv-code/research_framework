@@ -31,7 +31,7 @@ def homepage():
     st.title("108 Capital Research Dashboard")
     st.write("Welcome to the Research Dashboard.")
     st.sidebar.title("Strategies Toggle")
-    st.logo(r"C:\Users\admin\Desktop\108 TEST LOGO.png")
+    st.logo(logo_path)
     st.divider()
 
 
