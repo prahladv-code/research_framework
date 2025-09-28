@@ -1,7 +1,7 @@
 import streamlit as st
 import threading
 import plotly.express as px
-from analysis.calculate_metrics import CalculateMetrics
+from research_framework.analysis.calculate_metrics import CalculateMetrics
 import pandas as pd
 import os
 import plotly.io as pio
