@@ -139,7 +139,7 @@ def pcco_driver(folder_path):
 
 def main():
     homepage()
-    pcco_driver(f'C:/Users/admin/VSCode/tradesheets/pcco/')
+    pcco_driver(f'./tradesheets/pcco/')
     
 
 
