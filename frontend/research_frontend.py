@@ -1,8 +1,9 @@
+import os
+os.environ["STREAMLIT_SERVER_FILE_WATCHER_TYPE"] = "none"
 import streamlit as st
 import threading
 import plotly.express as px
 import pandas as pd
-import os
 import plotly.io as pio
 import numpy as np
 import sys
