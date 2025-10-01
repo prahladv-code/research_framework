@@ -18,6 +18,7 @@ if REPO_ROOT not in sys.path:
 
 # Now you can safely import your analysis module
 from analysis.calculate_metrics import CalculateMetrics
+calc = CalculateMetrics()
 pio.renderers.default = "browser"
 
 def homepage():
@@ -38,7 +39,6 @@ def homepage():
 
 
 def calculate_metrics(folder_path, initial_margin):
-    calc = CalculateMetrics()
     folder_path = folder_path
     metrics_list = []
     for file in os.listdir(folder_path):
@@ -55,7 +55,7 @@ def calculate_metrics(folder_path, initial_margin):
 
 
 def plot_all_eq_curves(folder_path, initial_margin):
-    calc = CalculateMetrics()
+
     df_list = []
 
     for file in os.listdir(folder_path):
@@ -87,45 +87,17 @@ def plot_all_eq_curves(folder_path, initial_margin):
     st.plotly_chart(fig, use_container_width=True)
 
 def display_multi_select_strats(folder_path, initial_margin):
-    combined_df = pd.DataFrame()
     portfolio_list = st.multiselect("Combined Portfolio Metrics", [file.split('.')[0] for file in os.listdir(folder_path)])
-    for file in portfolio_list:
-        portfolio_df = pd.read_parquet(folder_path + file)
-        portfolio_df['date'] = pd.to_datetime(portfolio_df['timestamp']).dt.date
-        if not combined_df.empty:
-            combined_df = combined_df._append(portfolio_df)
-        else:
-            combined_df = portfolio_df
+    metrics_df, portfolio = calc.calculate_portfolio_metrics(portfolio_list, folder_path, initial_margin)
+    st.write("Portfolio Metrics")
+    st.dataframe(metrics_df)
+    st.divider()
 
-    if not combined_df.empty:
-        combined_df = combined_df.sort_values(by='date', ascending=True)
-        combined_df['Daily P/L'] = combined_df.groupby('date')['P/L'].transform(
-            lambda x: [np.nan] * (len(x) - 1) + [x.sum()]
-        )
-        portfolio = combined_df[pd.notna(combined_df['Daily P/L'])]
-        portfolio['Daily EQ'] = portfolio['Daily P/L'].cumsum()
-        portfolio['eq curve'] = portfolio['Daily EQ'] + (initial_margin * len(portfolio_list))
-        days = (portfolio['date'].iloc[-1] - portfolio['date'].iloc[0]).days
-        cagr = ((portfolio['eq curve'].iloc[-1] / portfolio['eq curve'].iloc[0]) ** (365 / days)) - 1
-        running_max = portfolio['eq curve'].cummax()
-        drawdown = (portfolio['eq curve'] - running_max) / running_max
-        mdd = drawdown.min()
-        calmar = cagr / abs(mdd)
-        metrics_dict = {
-            'Portfolio CAGR': round(cagr*100, 2),
-            'Portfolio MDD': round(mdd*100, 2),
-            'Portfolio Calmar': round(calmar, 2)
-        }
-        metrics_df = pd.DataFrame([metrics_dict])
-        st.write("Portfolio Metrics")
-        st.dataframe(metrics_df)
-        st.divider()
+    fig = px.line(portfolio, x='date', y='eq curve', title='Portfolio Equity Curve')
+    fig.update_traces(line_color='white')
 
-        fig = px.line(portfolio, x='date', y='eq curve', title='Portfolio Equity Curve')
-        fig.update_traces(line_color='white')
-
-        # Display in Streamlit
-        st.plotly_chart(fig, use_container_width=True)
+    # Display in Streamlit
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def pcco_driver(folder_path):
