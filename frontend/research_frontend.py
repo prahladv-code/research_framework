@@ -90,16 +90,18 @@ def display_multi_select_strats(folder_path, initial_margin):
     portfolio_list = st.multiselect("Combined Portfolio Metrics", [file.split('.')[0] for file in os.listdir(folder_path)])
     if portfolio_list:
         metrics_df, portfolio = calc.calculate_portfolio_metrics(portfolio_list, folder_path, initial_margin)
-    st.write("Portfolio Metrics")
-    st.dataframe(metrics_df)
-    st.divider()
+        st.write("Portfolio Metrics")
+        st.dataframe(metrics_df)
+        st.divider()
 
-    fig = px.line(portfolio, x='date', y='eq curve', title='Portfolio Equity Curve')
-    fig.update_traces(line_color='white')
-
-    # Display in Streamlit
-    st.plotly_chart(fig, use_container_width=True)
-
+        if not portfolio.empty:
+            fig = px.line(portfolio, x='date', y='eq curve', title='Portfolio Equity Curve')
+            fig.update_traces(line_color='white')
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No equity curve data available for the selected portfolio.")
+    else:
+        st.info("Select one or more strategies to view combined portfolio metrics.")
 
 def pcco_driver(folder_path):
     strategies = ['PCCO_SPOT']

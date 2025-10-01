@@ -91,32 +91,45 @@ class CalculateMetrics:
                 lambda x: [np.nan] * (len(x) - 1) + [x.sum()]
             )
             portfolio = combined_df[pd.notna(combined_df['Daily P/L'])]
-            total_trades = len(portfolio_df[portfolio_df['Daily P/L'].notna()])
-            winners = len(portfolio_df[portfolio_df['Daily P/L'] > 0])
-            losers = len(portfolio_df[portfolio_df['Daily P/L'] < 0])
-            win_percentage = winners/total_trades * 100
-            loss_percentage = losers/total_trades * 100
-            profit_factor = portfolio_df.loc[portfolio_df['Daily P/L'] > 0, 'Daily P/L'].sum() / abs(portfolio_df.loc[portfolio_df['Daily P/L'] < 0, 'Daily P/L'].sum())
-            payoff_ratio = portfolio_df.loc[portfolio_df['Daily P/L'] > 0, 'Daily P/L'].mean() / abs(portfolio_df.loc[portfolio_df['Daily P/L'] < 0, 'Daily P/L'].mean())
-            avg_win = portfolio_df.loc[portfolio_df['Daily P/L'] > 0, 'Daily P/L'].mean()
-            avg_loss = abs(portfolio_df.loc[portfolio_df['Daily P/L'] < 0, 'Daily P/L'].mean())
-            avg_win_percentage = avg_win/initial_margin*100
-            avg_loss_percentage = avg_loss/initial_margin*100
-            trading_edge = (avg_win_percentage*win_percentage) - (avg_loss_percentage*loss_percentage)
-            downside_deviation = abs(portfolio_df.loc[portfolio_df['Daily P/L'] < 0, 'Daily P/L'].std())
-            basic_sortino = cagr/downside_deviation
+
+            total_trades = len(portfolio['Daily P/L'])
+            winners = len(portfolio[portfolio['Daily P/L'] > 0])
+            losers = len(portfolio[portfolio['Daily P/L'] < 0])
+            win_percentage = winners / total_trades * 100
+            loss_percentage = losers / total_trades * 100
+
+            profit_factor = portfolio.loc[portfolio['Daily P/L'] > 0, 'Daily P/L'].sum() / abs(
+                portfolio.loc[portfolio['Daily P/L'] < 0, 'Daily P/L'].sum()
+            )
+            payoff_ratio = portfolio.loc[portfolio['Daily P/L'] > 0, 'Daily P/L'].mean() / abs(
+                portfolio.loc[portfolio['Daily P/L'] < 0, 'Daily P/L'].mean()
+            )
+
+            avg_win = portfolio.loc[portfolio['Daily P/L'] > 0, 'Daily P/L'].mean()
+            avg_loss = abs(portfolio.loc[portfolio['Daily P/L'] < 0, 'Daily P/L'].mean())
+            avg_win_percentage = avg_win / initial_margin * 100
+            avg_loss_percentage = avg_loss / initial_margin * 100
+            trading_edge = (avg_win_percentage * win_percentage) - (avg_loss_percentage * loss_percentage)
+
+            # Equity curve
             portfolio['Daily EQ'] = portfolio['Daily P/L'].cumsum()
             portfolio['eq curve'] = portfolio['Daily EQ'] + (initial_margin * len(portfolio_list))
+
+            # CAGR (must come before Sortino)
             days = (portfolio['date'].iloc[-1] - portfolio['date'].iloc[0]).days
             cagr = ((portfolio['eq curve'].iloc[-1] / portfolio['eq curve'].iloc[0]) ** (365 / days)) - 1
+
+            downside_deviation = abs(portfolio.loc[portfolio['Daily P/L'] < 0, 'Daily P/L'].std())
+            basic_sortino = cagr / downside_deviation if downside_deviation != 0 else np.nan
+
             running_max = portfolio['eq curve'].cummax()
             drawdown = (portfolio['eq curve'] - running_max) / running_max
             mdd = drawdown.min()
             calmar = cagr / abs(mdd)
 
             metrics_dict = {
-                'Portfolio CAGR': round(cagr*100, 2),
-                'Portfolio MDD': round(mdd*100, 2),
+                'Portfolio CAGR': round(cagr * 100, 2),
+                'Portfolio MDD': round(mdd * 100, 2),
                 'Portfolio Calmar': round(calmar, 2),
                 'Portfolio Profit Factor': profit_factor,
                 'Portfolio Payoff Ratio': payoff_ratio,
@@ -127,6 +140,7 @@ class CalculateMetrics:
             return metrics_df, portfolio
         else:
             return pd.DataFrame(), pd.DataFrame()
+
 
 
 
