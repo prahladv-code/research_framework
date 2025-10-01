@@ -78,7 +78,7 @@ class CalculateMetrics:
     def calculate_portfolio_metrics(self, portfolio_list, folder_path, initial_margin):
         combined_df = pd.DataFrame()
         for file in portfolio_list:
-            portfolio_df = pd.read_parquet(folder_path + file)
+            portfolio_df = pd.read_parquet(folder_path + file + '.parquet')
             portfolio_df['date'] = pd.to_datetime(portfolio_df['timestamp']).dt.date
             if not combined_df.empty:
                 combined_df = combined_df._append(portfolio_df)
@@ -126,7 +126,7 @@ class CalculateMetrics:
             metrics_df = pd.DataFrame([metrics_dict])
             return metrics_df, portfolio
         else:
-            return pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame()
 
 
 
