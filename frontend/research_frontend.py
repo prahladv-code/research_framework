@@ -88,7 +88,7 @@ def plot_all_eq_curves(folder_path, initial_margin):
 
 def display_multi_select_strats(folder_path, initial_margin):
     combined_df = pd.DataFrame()
-    portfolio_list = st.multiselect("Combined Portfolio Metrics", [file for file in os.listdir(folder_path)])
+    portfolio_list = st.multiselect("Combined Portfolio Metrics", [file.split('.')[0] for file in os.listdir(folder_path)])
     for file in portfolio_list:
         portfolio_df = pd.read_parquet(folder_path + file)
         portfolio_df['date'] = pd.to_datetime(portfolio_df['timestamp']).dt.date
