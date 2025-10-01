@@ -8,7 +8,7 @@ import logging
 class ChakraView:
     def __init__(self):
         self.daily_tb = duckdb.connect(r"C:\Users\admin\Desktop\DuckDB\nifty_daily.ddb", read_only=True)
-        logging.basicConfig(filename=r'C:\Users\admin\VSCode\research\chakraview\logs\ck_logger.log',
+        logging.basicConfig(filename=r'./ck_logger.log',
                                        level = logging.INFO,
                                        format="%(asctime)s [%(levelname)s] %(message)s")
         self.log = logging.getLogger(self.__class__.__name__)

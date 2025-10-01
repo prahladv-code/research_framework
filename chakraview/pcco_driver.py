@@ -11,10 +11,10 @@ def run_backtest(uid):
 
 if __name__ == "__main__":
     # List of UIDs to backtest
-    minute_list = [1, 10]
+    minute_list = [3, 4, 5, 6, 7, 8]
     uids = [f"PCCO_nifty_{minute}" for minute in minute_list]
 
-    batch_size = 10
+    batch_size = 5
     
     for i in range(0, len(uids), batch_size):
         batch = uids[i:i + batch_size]

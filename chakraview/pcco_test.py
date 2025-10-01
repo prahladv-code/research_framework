@@ -161,7 +161,7 @@ class PCCO(ChakraView):
         signals = self.gen_signals()
         df = pd.DataFrame(signals)
         tradesheet = self.metrics.calculate_pl_in_tradesheet(df)
-        tradesheet.to_csv(f'C:/Users/admin/VSCode/tradesheets/pcco/{uid}.csv')
+        tradesheet.to_parquet(f'C:/Users/admin/VSCode/research/research_framework/tradesheets/pcco/{uid}.parquet')
         end = time.time()
         print(f'Elapsed Time In COMPLETING raw Tradesheet Generation: {end-start}')
         print("+++++++++++++++++++++++++++++++++++++++ GENERATED UID +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
