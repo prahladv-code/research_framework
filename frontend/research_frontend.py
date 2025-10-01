@@ -88,7 +88,8 @@ def plot_all_eq_curves(folder_path, initial_margin):
 
 def display_multi_select_strats(folder_path, initial_margin):
     portfolio_list = st.multiselect("Combined Portfolio Metrics", [file.split('.')[0] for file in os.listdir(folder_path)])
-    metrics_df, portfolio = calc.calculate_portfolio_metrics(portfolio_list, folder_path, initial_margin)
+    if portfolio_list:
+        metrics_df, portfolio = calc.calculate_portfolio_metrics(portfolio_list, folder_path, initial_margin)
     st.write("Portfolio Metrics")
     st.dataframe(metrics_df)
     st.divider()
