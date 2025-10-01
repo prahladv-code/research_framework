@@ -1,20 +1,28 @@
+import os
+os.environ["STREAMLIT_SERVER_FILE_WATCHER_TYPE"] = "none"
 import streamlit as st
 import threading
 import plotly.express as px
-from analysis.calculate_metrics import CalculateMetrics
 import pandas as pd
-import os
 import plotly.io as pio
 import numpy as np
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent))
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+logo_path = os.path.join(BASE_DIR, "108 TEST LOGO.png")
+# Add repo root to sys.path if it's not already there
+if REPO_ROOT not in sys.path:
+    sys.path.append(REPO_ROOT)
+
+# Now you can safely import your analysis module
+from analysis.calculate_metrics import CalculateMetrics
 pio.renderers.default = "browser"
 
 def homepage():
     st.set_page_config(
         page_title="108 Capital Dashboard",
-        page_icon=r"C:\Users\admin\Desktop\108 TEST LOGO.png",
+        page_icon=f"./frontend/108 TEST LOGO.png",
         layout="wide",
         initial_sidebar_state="expanded",
         menu_items={
@@ -23,8 +31,8 @@ def homepage():
     )
     st.title("108 Capital Research Dashboard")
     st.write("Welcome to the Research Dashboard.")
+    st.logo('./frontend/108 TEST LOGO.png')
     st.sidebar.title("Strategies Toggle")
-    st.logo(r"C:\Users\admin\Desktop\108 TEST LOGO.png")
     st.divider()
 
 
@@ -133,7 +141,7 @@ def pcco_driver(folder_path):
 
 def main():
     homepage()
-    pcco_driver(f'C:/Users/admin/VSCode/tradesheets/pcco/')
+    pcco_driver(f'./tradesheets/pcco/')
     
 
 
