@@ -101,7 +101,24 @@ def display_multi_select_strats(folder_path, initial_margin):
         else:
             st.warning("No equity curve data available for the selected portfolio.")
     else:
-        st.info("Select one or more strategies to view combined portfolio metrics.")
+        st.info("Select one or more UIDs to generate combined portfolio metrics.")
+
+def display_correlation_matrix(folder_path):
+    portfolio_list = st.multiselect("Choose UIDs to generate correlation matrix.", [file.split('.')[0] for file in os.listdir(folder_path)])
+    if portfolio_list:
+        corr_matrix = calc.calculate_correlation_matrix(portfolio_list, folder_path)
+        st.write("Correlation Matrix")
+        # Style the correlation matrix for color intensity
+        styled_corr = (
+            corr_matrix.style
+            .background_gradient(cmap='RdBu_r', vmin=-1, vmax=1)  # intense color near ±1
+            .format("{:.2f}")
+        )
+
+        # Display the styled DataFrame
+        st.dataframe(styled_corr, use_container_width=True)
+    else:
+        st.info("Select one or More UIDs to generate correlation matrix.")
 
 def pcco_driver(folder_path):
     strategies = ['PCCO_SPOT']

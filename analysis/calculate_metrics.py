@@ -140,6 +140,20 @@ class CalculateMetrics:
             return metrics_df, portfolio
         else:
             return pd.DataFrame(), pd.DataFrame()
+        
+    def calculate_correlation_matrix(self, portfolio_list, folder_path):
+        combined_df = pd.DataFrame()
+        for file in portfolio_list:
+            df = pd.read_parquet(folder_path + file + '.parquet')
+            pl_series = df['P/L'].reset_index(drop=True)
+            combined_df[file] = pl_series
+        
+        combined_df = combined_df.dropna()
+
+        corr_matrix = combined_df.corr()
+        return corr_matrix
+    
+
 
 
 
