@@ -56,7 +56,52 @@ def calculate_metrics(folder_path, initial_margin, slippage_pct):
 
 def downloads_section():
     st.sidebar.subheader('Data Retrieval toggle')
-    st.sidebar.radio('Select to go to downloads', ['Downloads'])
+    download = st.sidebar.radio('Select to go to downloads', ['Downloads'])
+    folder_path = ''
+
+    if download == "Downloads":
+        strat = st.selectbox(
+            "Select a Strat to Download Tradebooks:",
+            ["PCCO_SPOT", "PCCO_OPT"]
+        )
+
+        if strat == "PCCO_SPOT":
+            folder_path = './tradesheets/pcco/'
+        elif strat == "PCCO_OPT":
+            folder_path = './tradesheets/pcco_opt'
+        
+        # Check if folder exists
+        if os.path.exists(folder_path):
+            parquet_files = [f for f in os.listdir(folder_path) if f.endswith('.parquet')]
+
+            if parquet_files:
+                st.write(f"Found {len(parquet_files)} Parquet file(s):")
+
+                # Loop through all parquet files
+                for file in parquet_files:
+                    file_path = os.path.join(folder_path, file)
+
+                    try:
+                        # Read parquet file
+                        df = pd.read_parquet(file_path)
+
+                        # Convert to CSV bytes
+                        csv_bytes = df.to_csv(index=False).encode('utf-8')
+
+                        # Download button
+                        st.download_button(
+                            label=f"⬇️ Download {file.replace('.parquet', '.csv')}",
+                            data=csv_bytes,
+                            file_name=file.replace('.parquet', '.csv'),
+                            mime='text/csv'
+                        )
+                    except Exception as e:
+                        st.error(f"❌ Failed to read {file}: {e}")
+            else:
+                st.info("No Parquet files found in this folder.")
+        else:
+            st.warning("⚠️ Folder path does not exist.")
+
 
 def plot_all_eq_curves(folder_path, initial_margin, slippage_pct):
 
