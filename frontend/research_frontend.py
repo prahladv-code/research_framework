@@ -132,7 +132,7 @@ def strategy_driver():
         'PCCO_OPT': './tradesheets/pcco_opt/',
     }
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
-    slippage_pct = st.number_input('Slippage Percentage', 0, 0.05, key = 'slippage')
+    slippage_pct = st.number_input('Slippage Percentage', 0.0, 0.05, key = 'slippage')
 
     if selected_strat == 'PCCO_SPOT':
         folder_path = folder_paths.get(selected_strat)
