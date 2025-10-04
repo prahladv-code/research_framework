@@ -56,10 +56,9 @@ def calculate_metrics(folder_path, initial_margin, slippage_pct):
 
 def downloads_section():
     st.sidebar.subheader('Data Retrieval toggle')
-    download = st.sidebar.radio('Select to go to downloads', ['Downloads'])
     folder_path = ''
 
-    if download == "Downloads":
+    if st.sidebar.checkbox("Go to Downloads"):
         strat = st.selectbox(
             "Select a Strat to Download Tradebooks:",
             ["PCCO_SPOT", "PCCO_OPT"]
@@ -213,7 +212,7 @@ def strategy_driver():
 
 def main():
     homepage()
-    downloads_section()
+    # downloads_section()
     strategy_driver()
     
 
