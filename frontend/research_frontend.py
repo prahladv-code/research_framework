@@ -148,6 +148,20 @@ def strategy_driver():
         display_multi_select_strats(folder_path, initial_margin, slippage_pct)
         display_correlation_matrix(folder_path)
 
+# def calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct):
+#     folder_path = folder_path
+#     metrics_list = []
+#     optimizations_list = []
+#     for file in os.listdir(folder_path):
+#         try:
+#             df = pd.read_parquet(folder_path + file)
+#             df_metrics, metrics = calc.calculate_metrics(df, initial_margin, slippage_pct)
+#             uid = file.split('.parquet')[0]
+#             metrics['uid'] = uid
+#             metrics_list.append(metrics)
+#         except Exception as e:
+#             print(f'ERROR in {file}: {e}')
+#     metrics_df = pd.DataFrame(metrics_list)
 
 
 # C:/Users/admin/VSCode/tradesheets/pcco/
