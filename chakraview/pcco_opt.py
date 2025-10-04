@@ -5,7 +5,7 @@ import time
 from chakraview.config import sessions
 import multiprocessing as mp
 from analysis.calculate_metrics import CalculateMetrics
-
+qty = 75
 class PCCO(ChakraView):
     def __init__(self):
         super().__init__()
@@ -23,6 +23,7 @@ class PCCO(ChakraView):
         self.exit_trade = ''
         self.position_count = 0
         self.entry_time = None
+        self.entry_price = None
         
     
     def check_new_day(self, date):
@@ -41,8 +42,9 @@ class PCCO(ChakraView):
         self.start_session = self.sessions.get('start')
         self.end_session = self.sessions.get('end')
         self.target_time_period = int(uid_params.pop(0))
+        self.tgt_pct = float(uid.pop(0))
         self.reentry = uid.pop(0)='True'
-        self.max_pos = uid.pop(0)
+        self.max_pos = int(uid.pop(0))
 
     
     def create_itertuples(self):
@@ -68,11 +70,15 @@ class PCCO(ChakraView):
                         self.exit_trade = 'SELL'
                     elif self.entry_trade == 'SHORT':
                         self.exit_trade = 'COVER'
+                    exit_price_dict = self.get_tick(self.entry_symbol, self.row.date, self.row.time)
+                    exit_price = exit_price_dict.get('c')
                     signals_list.append(
                         {
                             'timestamp': str(self.row.date) + str(self.row.time),
-                            'symbol': self.row.symbol,
-                            'price': self.row.c,
+                            'symbol': self.entry_symbol,
+                            'price': exit_price,
+                            'qty': qty,
+                            'cv': qty*exit_price,
                             'trade': self.exit_trade,
                             'system action': 'TIME_EXIT'
                         }
@@ -83,7 +89,7 @@ class PCCO(ChakraView):
             
             if self.start_session <= self.row.time < self.end_session:
                 print("Trading Session Starts")
-                if self.close != 0 and self.position_count == 0:
+                if self.close != 0 and self.position_count <= self.max_pos:
                     if not self.in_position:
                         if self.close > self.open:
                             self.upper_bound = self.close
@@ -97,37 +103,67 @@ class PCCO(ChakraView):
 
                         # ENTRY CONDITION
 
-                        if self.row.h > self.upper_bound:
+                        if self.row.c > self.upper_bound:
                             self.log.info(f'Long Signal Triggered At {self.row.date} { self.row.time}')
                             self.entry_trade = 'BUY'
-                            price = self.upper_bound
+                            contract_details = self.find_ticker_by_moneyness(self.row.date, self.row.time, self.row.c, 50, 'CE', 0)
+                            self.entry_symbol = contract_details.get('symbol')
+                            self.entry_price = contract_details.get('c')
                             self.in_position = True
                             self.entry_time = datetime.datetime.combine(self.row.date, self.row.time)
                             signals_list.append(
                                 {
                                     'timestamp': str(self.row.date) + str(self.row.time),
-                                    'symbol': self.row.symbol,
-                                    'price': price,
+                                    'symbol': self.entry_symbol,
+                                    'price': self.entry_price,
+                                    'qty': qty,
+                                    'cv': qty*price,
                                     'trade': self.entry_trade,
                                     'system action': 'LONG_ENTRY' 
                                 }
                             )
 
-                        elif self.row.l < self.lower_bound:
+                        elif self.row.c < self.lower_bound:
                             self.log.info(f'Short Signal Triggered At {self.row.date} {self.row.time}')
                             self.entry_trade = 'SHORT'
-                            price = self.lower_bound
+                            contract_details = self.find_ticker_by_moneyness(self.row.date, self.row.time, self.row.c, 50, 'PE', 0)
+                            self.entry_symbol = contract_details.get('symbol')
+                            self.entry_price = contract_details.get('c')
                             self.in_position = True
                             self.entry_time = datetime.datetime.combine(self.row.date, self.row.time)
                             signals_list.append(
                                 {
                                     'timestamp': str(self.row.date) + '' + str(self.row.time),
-                                    'symbol': self.row.symbol,
-                                    'price': price,
+                                    'symbol': self.entry_symbol,
+                                    'price': self.entry_price,
+                                    'qty': qty,
+                                    'cv': qty*price,
                                     'trade': self.entry_trade,
                                     'system action': 'SHORT_ENTRY' 
                                 }
                             )
+
+                    # TARGET EXITS
+                    if self.in_position and self.entry_price:
+                        tgt_price = self.entry_price * (1 + self.tgt_pct)
+                        latest_tick = self.get_tick(self.entry_symbol, self.row.date, self.row.time)
+                        ltp = latest_tick.get('h')
+                        if ltp >= tgt_price:
+                            self.log.info(f'Target Triggered At {str(self.row.date) + str(self.row.time)}')
+                            signals_list.append(
+                                {
+                                    'timestamp': str(self.row.date) + str(self.row.time),
+                                    'symbol': self.entry_symbol,
+                                    'price': tgt_price,
+                                    'qty': qty,
+                                    'cv': qty*tgt_price,
+                                    'system action': 'EXIT_TGT'
+                                }
+                            )
+                            self.in_position = False
+                            self.position_count = 1
+                        
+                    # TIME EXIT UID CONDITION        
                     if self.in_position and self.entry_time:
                         exit_timestamp = self.entry_time + datetime.timedelta(minutes=self.target_time_period)
                         current_timestamp = datetime.datetime.combine(self.row.date, self.row.time)
@@ -141,18 +177,23 @@ class PCCO(ChakraView):
                             elif self.entry_trade == 'SHORT':
                                 self.exit_trade = 'COVER'
                                 price = self.row.l
-                            
+                            latest_tick = self.get_tick(self.entry_symbol, self.row.date, self.row.time)
+                            price = latest_tick.get('c')
                             signals_list.append(
                                 {
                                     'timestamp': str(self.row.date) + str(self.row.time),
-                                    'symbol': self.row.symbol,
+                                    'symbol': self.entry_symbol,
                                     'price': price,
+                                    'qty': qty,
+                                    'cv': price*qty,
                                     'trade': self.exit_trade,
-                                    'system action': 'EXIT_CONDITION' 
+                                    'system action': 'EXIT_TIME' 
                                 }
                             )
                             self.in_position = False
                             self.position_count = 1
+                        
+
             print(f'{self.row.date} {self.row.time} Upper Bound: {self.upper_bound} Lower Bound: {self.lower_bound} New Day: {new_day}, In Position {self.in_position}')
 
         return signals_list
