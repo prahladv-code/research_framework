@@ -39,13 +39,13 @@ def homepage():
     st.divider()
 
 
-def calculate_metrics(folder_path, initial_margin):
+def calculate_metrics(folder_path, initial_margin, slippage_pct):
     folder_path = folder_path
     metrics_list = []
     for file in os.listdir(folder_path):
         try:
             df = pd.read_parquet(folder_path + file)
-            df_metrics, metrics = calc.calculate_metrics(df, initial_margin)
+            df_metrics, metrics = calc.calculate_metrics(df, initial_margin, slippage_pct)
             uid = file.split('.parquet')[0]
             metrics['uid'] = uid
             metrics_list.append(metrics)
@@ -58,14 +58,14 @@ def downloads_section():
     st.sidebar.subheader('Data Retrieval toggle')
     st.sidebar.radio('Select to go to downloads', ['Downloads'])
 
-def plot_all_eq_curves(folder_path, initial_margin):
+def plot_all_eq_curves(folder_path, initial_margin, slippage_pct):
 
     df_list = []
 
     for file in os.listdir(folder_path):
         if file.endswith('.parquet'):
             df = pd.read_parquet(os.path.join(folder_path, file))
-            df_metrics, metrics = calc.calculate_metrics(df, initial_margin)
+            df_metrics, metrics = calc.calculate_metrics(df, initial_margin, slippage_pct)
             temp_df = pd.DataFrame({
                 'Trade': df_metrics['timestamp'],
                 'Equity Curve': df_metrics['Equity Curve'],
@@ -90,10 +90,10 @@ def plot_all_eq_curves(folder_path, initial_margin):
     # Display in Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
-def display_multi_select_strats(folder_path, initial_margin):
+def display_multi_select_strats(folder_path, initial_margin, slippage_pct):
     portfolio_list = st.multiselect("Combined Portfolio Metrics", [file.split('.parquet')[0] for file in os.listdir(folder_path)])
     if portfolio_list:
-        metrics_df, portfolio = calc.calculate_portfolio_metrics(portfolio_list, folder_path, initial_margin)
+        metrics_df, portfolio = calc.calculate_portfolio_metrics(portfolio_list, folder_path, initial_margin, slippage_pct)
         st.write("Portfolio Metrics")
         st.dataframe(metrics_df)
         st.divider()
@@ -132,19 +132,20 @@ def strategy_driver():
         'PCCO_OPT': './tradesheets/pcco_opt/',
     }
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
+    slippage_pct = st.number_input('Slippage Percentage', 0.001, 0.05, key = 'slippage')
 
     if selected_strat == 'PCCO_SPOT':
         folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin)
-        calculate_metrics(folder_path, initial_margin)
-        display_multi_select_strats(folder_path, initial_margin)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
+        calculate_metrics(folder_path, initial_margin, slippage_pct)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
         display_correlation_matrix(folder_path)
 
     elif selected_strat == 'PCCO_OPT':
         folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin)
-        calculate_metrics(folder_path, initial_margin)
-        display_multi_select_strats(folder_path, initial_margin)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
+        calculate_metrics(folder_path, initial_margin, slippage_pct)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
         display_correlation_matrix(folder_path)
 
 

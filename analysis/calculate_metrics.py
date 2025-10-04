@@ -72,8 +72,10 @@ class CalculateMetrics:
         return df
 
     
-    def calculate_metrics(self, df, initial_margin):
+    def calculate_metrics(self, df, initial_margin, slippage_pct):
         df = df[df['P/L'].notna()].copy()
+        slippage = df['cv'] * slippage_pct
+        df['P/L'] = df['P/L'] - slippage
         df['cumsum'] = df['P/L'].cumsum()
         df['Equity Curve'] = df['cumsum'] + initial_margin
         days = ((df['timestamp'].iloc[-1].date()) - (df['timestamp'].iloc[0].date())).days
@@ -115,11 +117,13 @@ class CalculateMetrics:
                          'basic_sortino': basic_sortino}
         return df, metrics_dict
     
-    def calculate_portfolio_metrics(self, portfolio_list, folder_path, initial_margin):
+    def calculate_portfolio_metrics(self, portfolio_list, folder_path, initial_margin, slippage_pct):
         combined_df = pd.DataFrame()
         for file in portfolio_list:
             portfolio_df = pd.read_parquet(folder_path + file + '.parquet')
             portfolio_df['date'] = pd.to_datetime(portfolio_df['timestamp']).dt.date
+            slippage = portfolio_df['cv'] * slippage_pct
+            portfolio_df['P/L'] = portfolio_df['P/L'] - slippage
             if not combined_df.empty:
                 combined_df = combined_df._append(portfolio_df)
             else:
