@@ -8,6 +8,7 @@ import plotly.io as pio
 import numpy as np
 import sys
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
