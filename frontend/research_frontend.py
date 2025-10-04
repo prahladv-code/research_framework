@@ -91,7 +91,7 @@ def plot_all_eq_curves(folder_path, initial_margin):
     st.plotly_chart(fig, use_container_width=True)
 
 def display_multi_select_strats(folder_path, initial_margin):
-    portfolio_list = st.multiselect("Combined Portfolio Metrics", [file.split('.')[0] for file in os.listdir(folder_path)])
+    portfolio_list = st.multiselect("Combined Portfolio Metrics", [file.split('.parquet')[0] for file in os.listdir(folder_path)])
     if portfolio_list:
         metrics_df, portfolio = calc.calculate_portfolio_metrics(portfolio_list, folder_path, initial_margin)
         st.write("Portfolio Metrics")
@@ -108,7 +108,7 @@ def display_multi_select_strats(folder_path, initial_margin):
         st.info("Select one or more UIDs to generate combined portfolio metrics.")
 
 def display_correlation_matrix(folder_path):
-    portfolio_list = st.multiselect("Choose UIDs to generate correlation matrix.", [file.split('.')[0] for file in os.listdir(folder_path)])
+    portfolio_list = st.multiselect("Choose UIDs to generate correlation matrix.", [file.split('.parquet')[0] for file in os.listdir(folder_path)])
     if portfolio_list:
         corr_matrix = calc.calculate_correlation_matrix(portfolio_list, folder_path)
         st.write("Correlation Matrix")
