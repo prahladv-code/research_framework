@@ -54,6 +54,9 @@ def calculate_metrics(folder_path, initial_margin):
     metrics_df = pd.DataFrame(metrics_list)
     st.dataframe(metrics_df)
 
+def downloads_section():
+    st.sidebar.subheader('Data Retrieval toggle')
+    st.sidebar.radio('Select to go to downloads', ['Downloads'])
 
 def plot_all_eq_curves(folder_path, initial_margin):
 
@@ -121,22 +124,37 @@ def display_correlation_matrix(folder_path):
     else:
         st.info("Select one or More UIDs to generate correlation matrix.")
 
-def pcco_driver(folder_path):
-    strategies = ['PCCO_SPOT']
-    selected_strat = st.sidebar.radio('Select A Strategy', strategies)
+def strategy_driver():
+    strategies = ['PCCO_SPOT', 'PCCO_OPT']  # both options in the same radio
+    selected_strat = st.sidebar.radio('Select A Strategy', strategies, key='pcco_strategy')
+    folder_paths = {
+        'PCCO_SPOT': './tradesheets/pcco/',
+        'PCCO_OPT': './tradesheets/pcco_opt/',
+    }
+    initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
+
     if selected_strat == 'PCCO_SPOT':
-        initial_margin = st.number_input('Initial Margin', 1, 100000000)
+        folder_path = folder_paths.get(selected_strat)
+        plot_all_eq_curves(folder_path, initial_margin)
+        calculate_metrics(folder_path, initial_margin)
+        display_multi_select_strats(folder_path, initial_margin)
+        display_correlation_matrix(folder_path)
+
+    elif selected_strat == 'PCCO_OPT':
+        folder_path = folder_paths.get(selected_strat)
         plot_all_eq_curves(folder_path, initial_margin)
         calculate_metrics(folder_path, initial_margin)
         display_multi_select_strats(folder_path, initial_margin)
         display_correlation_matrix(folder_path)
 
 
+
 # C:/Users/admin/VSCode/tradesheets/pcco/
 
 def main():
     homepage()
-    pcco_driver(f'./tradesheets/pcco/')
+    downloads_section()
+    strategy_driver()
     
 
 

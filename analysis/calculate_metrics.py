@@ -46,15 +46,25 @@ class CalculateMetrics:
             if len(df1) == 2:
                 if df1['trade'].iloc[0] == 'BUY':
                     entry_price = df1.loc[df1['trade'] == 'BUY', 'price'].iloc[0]
-                    exit_price = df1.loc[df1['trade'] == 'SELL', 'price'].iloc[0]
+                    exit_rows = df1.loc[df1['trade'] == 'SELL', 'price']
                     qty = df1['qty'].iloc[0]
-                    df.loc[df1.index[-1], 'P/L'] = (exit_price - entry_price) * qty
+                    if not exit_rows.empty:
+                        exit_price = exit_rows.iloc[0]
+                        df.loc[df1.index[-1], 'P/L'] = (exit_price - entry_price) * qty
+                    else:
+                        # Handle incomplete trade
+                        df.loc[df1.index[-1], 'P/L'] = 0
 
                 elif df1['trade'].iloc[0] == 'SHORT':
                     entry_price = df1.loc[df1['trade'] == 'SHORT', 'price'].iloc[0]
-                    exit_price = df1.loc[df1['trade'] == 'COVER', 'price'].iloc[0]
+                    exit_rows = df1.loc[df1['trade'] == 'COVER', 'price']
                     qty = df1['qty'].iloc[0]
-                    df.loc[df1.index[-1], 'P/L'] = (exit_price - entry_price) * qty
+                    if not exit_rows.empty:
+                        exit_price = exit_rows.iloc[0]
+                        df.loc[df1.index[-1], 'P/L'] = (entry_price - exit_price) * qty
+                    else:
+                        # Handle incomplete trade
+                        df.loc[df1.index[-1], 'P/L'] = 0
             else:
                 # If incomplete trade, set P/L at last row = 0
                 df.loc[df1.index[-1], 'P/L'] = 0

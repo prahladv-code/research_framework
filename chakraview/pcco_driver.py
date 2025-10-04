@@ -1,5 +1,5 @@
 import multiprocessing
-from chakraview.pcco_test import PCCO
+from chakraview.pcco_opt import PCCO
 
 # This function will run in each process
 def run_backtest(uid):
@@ -11,8 +11,13 @@ def run_backtest(uid):
 
 if __name__ == "__main__":
     # List of UIDs to backtest
-    minute_list = [3, 4, 5, 6, 7, 8]
-    uids = [f"PCCO_nifty_{minute}" for minute in minute_list]
+    minute_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    tgt_pct = [0.02, 0.03, 0.04, 0.05, 0.06]
+    uids = []
+    for m in minute_list:
+        for tgt in tgt_pct:
+            uids.append(f'PCCOOPT_nifty_{m}_{tgt}_False_0')
+
 
     batch_size = 5
     

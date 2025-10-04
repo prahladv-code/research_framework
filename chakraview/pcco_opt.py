@@ -42,9 +42,9 @@ class PCCO(ChakraView):
         self.start_session = self.sessions.get('start')
         self.end_session = self.sessions.get('end')
         self.target_time_period = int(uid_params.pop(0))
-        self.tgt_pct = float(uid.pop(0))
-        self.reentry = uid.pop(0)='True'
-        self.max_pos = int(uid.pop(0))
+        self.tgt_pct = float(uid_params.pop(0))
+        self.reentry = uid_params.pop(0)=='True'
+        self.max_pos = int(uid_params.pop(0))
 
     
     def create_itertuples(self):
@@ -78,7 +78,7 @@ class PCCO(ChakraView):
                             'symbol': self.entry_symbol,
                             'price': exit_price,
                             'qty': qty,
-                            'cv': qty*exit_price,
+                            'cv': qty*exit_price if exit_price else 0,
                             'trade': self.exit_trade,
                             'system action': 'TIME_EXIT'
                         }
@@ -117,15 +117,15 @@ class PCCO(ChakraView):
                                     'symbol': self.entry_symbol,
                                     'price': self.entry_price,
                                     'qty': qty,
-                                    'cv': qty*price,
+                                    'cv': qty*self.entry_price if self.entry_price else 0,
                                     'trade': self.entry_trade,
-                                    'system action': 'LONG_ENTRY' 
+                                    'system action': 'LONG_SIDE_ENTRY' 
                                 }
                             )
 
                         elif self.row.c < self.lower_bound:
                             self.log.info(f'Short Signal Triggered At {self.row.date} {self.row.time}')
-                            self.entry_trade = 'SHORT'
+                            self.entry_trade = 'BUY'
                             contract_details = self.find_ticker_by_moneyness(self.row.date, self.row.time, self.row.c, 50, 'PE', 0)
                             self.entry_symbol = contract_details.get('symbol')
                             self.entry_price = contract_details.get('c')
@@ -137,14 +137,18 @@ class PCCO(ChakraView):
                                     'symbol': self.entry_symbol,
                                     'price': self.entry_price,
                                     'qty': qty,
-                                    'cv': qty*price,
+                                    'cv': qty*self.entry_price if self.entry_price else 0,
                                     'trade': self.entry_trade,
-                                    'system action': 'SHORT_ENTRY' 
+                                    'system action': 'SHORT_SIDE_ENTRY' 
                                 }
                             )
 
                     # TARGET EXITS
                     if self.in_position and self.entry_price:
+                        if self.entry_trade == 'BUY':
+                            self.exit_trade = 'SELL'
+                        elif self.entry_trade == 'SHORT':
+                            self.exit_trade = 'COVER'
                         tgt_price = self.entry_price * (1 + self.tgt_pct)
                         latest_tick = self.get_tick(self.entry_symbol, self.row.date, self.row.time)
                         ltp = latest_tick.get('h')
@@ -156,7 +160,8 @@ class PCCO(ChakraView):
                                     'symbol': self.entry_symbol,
                                     'price': tgt_price,
                                     'qty': qty,
-                                    'cv': qty*tgt_price,
+                                    'cv': qty*tgt_price if tgt_price else 0,
+                                    'trade': self.exit_trade,
                                     'system action': 'EXIT_TGT'
                                 }
                             )
@@ -173,10 +178,10 @@ class PCCO(ChakraView):
                             self.log.info(f'Exit Condition Triggered At {str(exit_timestamp)}')
                             if self.entry_trade == 'BUY':
                                 self.exit_trade = 'SELL'
-                                price = self.row.h
+                                
                             elif self.entry_trade == 'SHORT':
                                 self.exit_trade = 'COVER'
-                                price = self.row.l
+                                
                             latest_tick = self.get_tick(self.entry_symbol, self.row.date, self.row.time)
                             price = latest_tick.get('c')
                             signals_list.append(
@@ -185,7 +190,7 @@ class PCCO(ChakraView):
                                     'symbol': self.entry_symbol,
                                     'price': price,
                                     'qty': qty,
-                                    'cv': price*qty,
+                                    'cv': price*qty if price else 0,
                                     'trade': self.exit_trade,
                                     'system action': 'EXIT_TIME' 
                                 }
@@ -204,8 +209,8 @@ class PCCO(ChakraView):
         self.set_signal_parameters(uid)
         signals = self.gen_signals()
         df = pd.DataFrame(signals)
-        tradesheet = self.metrics.calculate_pl_in_tradesheet(df)
-        tradesheet.to_parquet(f'C:/Users/admin/VSCode/research/research_framework/tradesheets/pcco/{uid}.parquet')
+        tradesheet = self.metrics.calculate_pl_in_opt_tradesheet(df)
+        tradesheet.to_parquet(f'C:/Users/admin/VSCode/research/research_framework/tradesheets/pcco_opt/{uid}.parquet')
         end = time.time()
         print(f'Elapsed Time In COMPLETING raw Tradesheet Generation: {end-start}')
         print("+++++++++++++++++++++++++++++++++++++++ GENERATED UID +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")

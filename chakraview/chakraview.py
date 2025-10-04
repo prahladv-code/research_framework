@@ -36,6 +36,10 @@ class ChakraView:
         df = self.daily_tb.execute(self.tick_query).fetchdf()
         df_renamed = df.rename(columns={'open': 'o', 'high': 'h', 'low': 'l', 'close': 'c', 'volume': 'v'})
         df_filtered = df_renamed[['o', 'h', 'l', 'c', 'v', 'oi']].copy()
+        
+        if df_filtered.empty:
+            return {}
+        
         tick_dict = df_filtered.to_dict(orient = 'records')
         end = t.time()
         print(f'Elapsed Time In Getting Tick: {end-start}')
