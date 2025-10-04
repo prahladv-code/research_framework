@@ -32,6 +32,36 @@ class CalculateMetrics:
 
         return df
     
+    def calculate_pl_in_opt_tradesheet(self, df):
+        # Convert timestamp
+        df['timestamp'] = pd.to_datetime(df['timestamp'], format='%Y-%m-%d%H:%M:%S')
+
+        # Initialize P/L column
+        df['P/L'] = np.nan
+
+        # Group by date
+        df_groups = df.groupby(df['timestamp'].dt.date)
+
+        for group, df1 in df_groups:
+            if len(df1) == 2:
+                if df1['trade'].iloc[0] == 'BUY':
+                    entry_price = df1.loc[df1['trade'] == 'BUY', 'price'].iloc[0]
+                    exit_price = df1.loc[df1['trade'] == 'SELL', 'price'].iloc[0]
+                    qty = df1['qty'].iloc[0]
+                    df.loc[df1.index[-1], 'P/L'] = (exit_price - entry_price) * qty
+
+                elif df1['trade'].iloc[0] == 'SHORT':
+                    entry_price = df1.loc[df1['trade'] == 'SHORT', 'price'].iloc[0]
+                    exit_price = df1.loc[df1['trade'] == 'COVER', 'price'].iloc[0]
+                    qty = df1['qty'].iloc[0]
+                    df.loc[df1.index[-1], 'P/L'] = (exit_price - entry_price) * qty
+            else:
+                # If incomplete trade, set P/L at last row = 0
+                df.loc[df1.index[-1], 'P/L'] = 0
+
+        return df
+
+    
     def calculate_metrics(self, df, initial_margin):
         df = df[df['P/L'].notna()].copy()
         df['cumsum'] = df['P/L'].cumsum()
