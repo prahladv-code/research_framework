@@ -16,7 +16,7 @@ class ChakraView:
     def get_spot_df(self, spot_name):
         df = self.daily_tb.execute(f"SELECT * FROM {spot_name}").fetch_df()
         df['date'] = pd.to_datetime(df['date']).dt.date
-        df = df.rename(columns={
+        df = df.rename(columns={    
                                     'open': 'o',
                                     'close': 'c',
                                     'high': 'h',
