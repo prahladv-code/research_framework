@@ -46,7 +46,7 @@ def calculate_metrics(folder_path, initial_margin):
         try:
             df = pd.read_parquet(folder_path + file)
             df_metrics, metrics = calc.calculate_metrics(df, initial_margin)
-            uid = file.split('.')[0]
+            uid = file.split('.parquet')[0]
             metrics['uid'] = uid
             metrics_list.append(metrics)
         except Exception as e:
