@@ -128,6 +128,7 @@ def pcco_driver(folder_path):
         plot_all_eq_curves(folder_path, initial_margin)
         calculate_metrics(folder_path, initial_margin)
         display_multi_select_strats(folder_path, initial_margin)
+        display_correlation_matrix(folder_path)
 
 
 # C:/Users/admin/VSCode/tradesheets/pcco/
