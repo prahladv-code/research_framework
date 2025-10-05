@@ -179,19 +179,17 @@ def calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct):
             # Get numeric columns
             numeric_cols = df.select_dtypes(include='number').columns.tolist()
 
-            # Extract all unique components from uid
+            # Extract all unique UID components
             components = set()
             for uid in df['uid']:
                 components.update(uid.split('_'))
 
-            # Compute averages for each component
+            # Compute averages for each unique component
             data = []
             for comp in sorted(components):
-                # More robust matching pattern for both numeric and text
-                pattern = rf'(^|_)({re.escape(comp)})(_|$)'
-                mask = df['uid'].str.contains(pattern, regex=True)
+                # Create mask without regex — check if comp in split(uid)
+                mask = df['uid'].apply(lambda x: comp in x.split('_'))
 
-                # Skip components that match no rows
                 if not mask.any():
                     continue
 
@@ -199,28 +197,35 @@ def calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct):
                 avg_values['component'] = comp
                 data.append(avg_values)
 
-            # Build result dataframe
             result_df = pd.DataFrame(data)
 
-            # Optional: reorder so 'component' is first
-            result_df = result_df[['component'] + [col for col in result_df.columns if col != 'component']]
+            if result_df.empty:
+                st.warning("No components matched. Check UID structure or values.")
+                return pd.DataFrame()
 
+            # Put 'component' column first
+            result_df = result_df[['component'] + [col for col in result_df.columns if col != 'component']]
             return result_df
-        # Step 3: Get the averaged dataframe
+
+        # Step 2: Get averages
         avg_df = calculate_componentwise_averages(metrics_df)
 
-        # Step 4: Sort by CAGR descending
-        avg_df = avg_df.sort_values(by="cagr", ascending=False, ignore_index=True)
+        # Step 3: Sort by CAGR descending
+        if not avg_df.empty and 'cagr' in avg_df.columns:
+            avg_df = avg_df.sort_values(by='cagr', ascending=False, ignore_index=True)
 
-        # Step 5: Streamlit display with color gradient
-        st.dataframe(
-            avg_df.style.background_gradient(
-                subset=["cagr"], cmap="coolwarm_r"  # blue for high, red for low
-            ).format(precision=4)
-        )
+            # Step 4: Show in Streamlit with color gradient
+            st.dataframe(
+                avg_df.style.background_gradient(
+                    subset=['cagr'], cmap='coolwarm_r'  # blue = higher CAGR, red = lower
+                ).format(precision=4)
+            )
+        else:
+            st.warning("No CAGR column found or dataframe is empty.")
+
         return avg_df
     else:
-        st.info("Select the above checkbox to plot average of optimizations.")
+        st.info("Select The Checkbox Above to Display Average Of Optimizations.")
 
 
 def strategy_driver():
