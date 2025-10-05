@@ -55,7 +55,7 @@ def calculate_metrics(folder_path, initial_margin, slippage_pct):
     st.dataframe(metrics_df)
 
 def downloads_section():
-    st.sidebar.subheader('Data Retrieval toggle')
+
     folder_path = ''
 
     if st.sidebar.checkbox("Go to Downloads"):
@@ -212,8 +212,11 @@ def strategy_driver():
 
 def main():
     homepage()
-    # downloads_section()
-    strategy_driver()
+    section = st.sidebar.radio("Select section:", ["Strats", "Downloads"])
+    if section == "Downloads":
+        downloads_section()
+    elif section == "Strats":
+        strategy_driver()
     
 
 
