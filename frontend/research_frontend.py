@@ -212,12 +212,11 @@ def calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct):
 
         # Step 3: Sort by CAGR descending
         if not avg_df.empty and 'cagr' in avg_df.columns:
-            avg_df = avg_df.sort_values(by='cagr', ascending=False, ignore_index=True)
 
             # Step 4: Show in Streamlit with color gradient
             st.dataframe(
                 avg_df.style.background_gradient(
-                    subset=['cagr'], cmap='coolwarm_r'  # blue = higher CAGR, red = lower
+                    cmap='coolwarm_r'  # blue = higher metrics, red = lower
                 ).format(precision=4)
             )
         else:
