@@ -25,7 +25,7 @@ pio.renderers.default = "browser"
 def homepage():
     st.set_page_config(
         page_title="108 Capital Dashboard",
-        page_icon=f"./frontend/108 TEST LOGO.png",
+        page_icon=f"./frontend/108 LOGO BLACK.png",
         layout="wide",
         initial_sidebar_state="expanded",
         menu_items={
@@ -34,7 +34,7 @@ def homepage():
     )
     st.title("108 Capital Research Dashboard")
     st.write("Welcome to the Research Dashboard.")
-    st.logo('./frontend/108 TEST LOGO.png')
+    st.logo('./frontend/108 LOGO BLACK.png')
     st.sidebar.title("Strategies Toggle")
     st.divider()
 
