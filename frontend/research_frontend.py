@@ -187,7 +187,14 @@ def calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct):
             # Compute averages for each component
             data = []
             for comp in sorted(components):
-                mask = df['uid'].str.contains(fr'\b{comp}\b', regex=True)
+                # More robust matching pattern for both numeric and text
+                pattern = rf'(^|_)({re.escape(comp)})(_|$)'
+                mask = df['uid'].str.contains(pattern, regex=True)
+
+                # Skip components that match no rows
+                if not mask.any():
+                    continue
+
                 avg_values = df.loc[mask, numeric_cols].mean().to_dict()
                 avg_values['component'] = comp
                 data.append(avg_values)
