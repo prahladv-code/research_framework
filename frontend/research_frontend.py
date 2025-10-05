@@ -53,6 +53,7 @@ def calculate_metrics(folder_path, initial_margin, slippage_pct):
             print(f'ERROR in {file}: {e}')
     metrics_df = pd.DataFrame(metrics_list)
     st.dataframe(metrics_df)
+    return metrics_df
 
 def downloads_section():
 
@@ -168,6 +169,53 @@ def display_correlation_matrix(folder_path):
     else:
         st.info("Select one or More UIDs to generate correlation matrix.")
 
+
+def calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct):
+    if st.checkbox("Compute Average Of Optimizations"):
+        metrics_df = calculate_metrics(folder_path, initial_margin, slippage_pct)
+        def calculate_componentwise_averages(metrics_df: pd.DataFrame) -> pd.DataFrame:
+            df = metrics_df.copy()
+
+            # Get numeric columns
+            numeric_cols = df.select_dtypes(include='number').columns.tolist()
+
+            # Extract all unique components from uid
+            components = set()
+            for uid in df['uid']:
+                components.update(uid.split('_'))
+
+            # Compute averages for each component
+            data = []
+            for comp in sorted(components):
+                mask = df['uid'].str.contains(fr'\b{comp}\b', regex=True)
+                avg_values = df.loc[mask, numeric_cols].mean().to_dict()
+                avg_values['component'] = comp
+                data.append(avg_values)
+
+            # Build result dataframe
+            result_df = pd.DataFrame(data)
+
+            # Optional: reorder so 'component' is first
+            result_df = result_df[['component'] + [col for col in result_df.columns if col != 'component']]
+
+            return result_df
+        # Step 3: Get the averaged dataframe
+        avg_df = calculate_componentwise_averages(metrics_df)
+
+        # Step 4: Sort by CAGR descending
+        avg_df = avg_df.sort_values(by="cagr", ascending=False, ignore_index=True)
+
+        # Step 5: Streamlit display with color gradient
+        st.dataframe(
+            avg_df.style.background_gradient(
+                subset=["cagr"], cmap="coolwarm_r"  # blue for high, red for low
+            ).format(precision=4)
+        )
+        return avg_df
+    else:
+        st.info("Select the above checkbox to plot average of optimizations.")
+
+
 def strategy_driver():
     strategies = ['PCCO_SPOT', 'PCCO_OPT']  # both options in the same radio
     selected_strat = st.sidebar.radio('Select A Strategy', strategies, key='pcco_strategy')
@@ -184,6 +232,7 @@ def strategy_driver():
         calculate_metrics(folder_path, initial_margin, slippage_pct)
         display_multi_select_strats(folder_path, initial_margin, slippage_pct)
         display_correlation_matrix(folder_path)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
 
     elif selected_strat == 'PCCO_OPT':
         folder_path = folder_paths.get(selected_strat)
@@ -191,21 +240,8 @@ def strategy_driver():
         calculate_metrics(folder_path, initial_margin, slippage_pct)
         display_multi_select_strats(folder_path, initial_margin, slippage_pct)
         display_correlation_matrix(folder_path)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
 
-# def calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct):
-#     folder_path = folder_path
-#     metrics_list = []
-#     optimizations_list = []
-#     for file in os.listdir(folder_path):
-#         try:
-#             df = pd.read_parquet(folder_path + file)
-#             df_metrics, metrics = calc.calculate_metrics(df, initial_margin, slippage_pct)
-#             uid = file.split('.parquet')[0]
-#             metrics['uid'] = uid
-#             metrics_list.append(metrics)
-#         except Exception as e:
-#             print(f'ERROR in {file}: {e}')
-#     metrics_df = pd.DataFrame(metrics_list)
 
 
 # C:/Users/admin/VSCode/tradesheets/pcco/
