@@ -62,13 +62,15 @@ def downloads_section():
     if st.sidebar.checkbox("Go to Downloads"):
         strat = st.selectbox(
             "Select a Strat to Download Tradebooks:",
-            ["PCCO_SPOT", "PCCO_OPT"]
+            ["PCCO_SPOT", "PCCO_OPT", "PRICEMA"]
         )
 
         if strat == "PCCO_SPOT":
             folder_path = './tradesheets/pcco/'
         elif strat == "PCCO_OPT":
             folder_path = './tradesheets/pcco_opt'
+        elif strat == "PRICEMA":
+            folder_path = './tradesheets/pricema'
         
         # Check if folder exists
         if os.path.exists(folder_path):
