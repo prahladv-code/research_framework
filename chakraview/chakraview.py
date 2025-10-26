@@ -26,6 +26,10 @@ class ChakraView:
                                 })
         return df
 
+    def get_df(self, dfname):
+        df = self.daily_tb.execute(f"SELECT * FROM {dfname}").fetch_df()
+        return df
+
     def get_tick(self, symbol: str, date: datetime.date, time: datetime.time):
         start = t.time()
         date_str = date.strftime('%Y-%m-%d')
@@ -105,4 +109,5 @@ class ChakraView:
         print(f'Elapsed Time In Getting Premium Details: {end-start}')
         return min_row_dict
     
-    
+
+
