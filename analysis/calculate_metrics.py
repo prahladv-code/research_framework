@@ -74,8 +74,8 @@ class CalculateMetrics:
     def calculate_pl_in_positional_tradesheet(self, df):
 
         # Add columns
-        df['P/L'] = 0.0
-        df['MTM P/L'] = 0.0
+        df['P/L'] = np.nan
+        df['MTM P/L'] = np.nan
 
         # Initialize trackers
         entry_cv = None
