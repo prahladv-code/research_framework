@@ -158,25 +158,24 @@ class CalculateMetrics:
         basic_sortino = cagr/downside_deviation
 
         # --- New: drawdown recovery time in days ---
-        drawdown_start = df['drawdown'].idxmin()  # trough index
-        peak_before_trough = df['Equity Curve'][:drawdown_start].idxmax()  # peak before trough
-        # first index after trough where Equity Curve >= previous peak
-        # Slice equity curve from trough to the end
-        eq_slice = df['Equity Curve'].loc[drawdown_start:]
+        # Assuming df already has 'Equity Curve' and 'timestamp' columns
+        df['cummax_change'] = df['cummax'] != df['cummax'].shift()
 
-        # Boolean mask for recovery points
-        recovery_points = eq_slice.index[eq_slice >= df['Equity Curve'].loc[peak_before_trough]]
+        # Record the date when a new peak occurs
+        df['drawdown_date'] = np.where(df['cummax_change'], pd.to_datetime(df['timestamp']).dt.date, pd.NaT)
 
-        # Compute duration
-        if len(recovery_points) > 0:
-            recovery_index = recovery_points[0]
-            drawdown_duration_days = (df['timestamp'].loc[recovery_index] - df['timestamp'].loc[peak_before_trough]).days
+        # Keep only the new peak dates
+        drawdown_dates = df.loc[df['cummax_change'], 'drawdown_date'].dropna().reset_index(drop=True)
+
+        # Compute the differences between consecutive peak dates
+        if len(drawdown_dates) > 1:
+            differences = drawdown_dates.diff().dropna()  # results in Timedelta objects
+            max_difference = differences.max().days   # max drawdown duration in days
         else:
-            drawdown_duration_days = None  # not recovered yet
-
+            max_difference = 0  # only one peak, no drawdown
 
         # Recovery factor = absolute return / abs(max drawdown)
-        recovery_factor = absolute_return / abs(max_drawdown)
+        recovery_factor = absolute_percentage / abs(max_drawdown)
 
         metrics_dict = { 
             'absolute_return': absolute_return,
@@ -192,7 +191,7 @@ class CalculateMetrics:
             'payoff_ratio': payoff_ratio,
             'trading_edge': trading_edge,
             'basic_sortino': basic_sortino,
-            'drawdown_duration_days': drawdown_duration_days,
+            'drawdown_duration_days': max_difference,
             'recovery_factor': recovery_factor
         }
         
@@ -251,27 +250,26 @@ class CalculateMetrics:
             running_max = portfolio['eq curve'].cummax()
             drawdown = (portfolio['eq curve'] - running_max) / running_max
             portfolio['drawdown'] = drawdown
+            portfolio['cummax'] = running_max
             mdd = drawdown.min()
             calmar = cagr / abs(mdd)
 
             # --- New: Drawdown recovery time and recovery factor ---
-            drawdown_start = portfolio['drawdown'].idxmin()  # trough index
-            peak_before_trough = portfolio['eq curve'][:drawdown_start].idxmax()  # peak before trough
-            # first index after trough where eq curve >= previous peak
-            # Slice equity curve from trough to the end
-            eq_slice = portfolio['eq curve'].loc[drawdown_start:]
+            portfolio['cummax_change'] = portfolio['cummax'] != portfolio['cummax'].shift()
 
-            # Boolean mask for recovery points
-            recovery_points = eq_slice.index[eq_slice >= portfolio['eq curve'].loc[peak_before_trough]]
+            # Record the date when a new peak occurs
+            portfolio['drawdown_date'] = np.where(portfolio['cummax_change'], pd.to_datetime(portfolio['timestamp']).dt.date, pd.NaT)
 
-            # Compute duration
-            if len(recovery_points) > 0:
-                recovery_index = recovery_points[0]
-                drawdown_duration_days = (portfolio['timestamp'].loc[recovery_index] - portfolio['timestamp'].loc[peak_before_trough]).days
+            # Keep only the new peak dates
+            drawdown_dates = portfolio.loc[portfolio['cummax_change'], 'drawdown_date'].dropna().reset_index(drop=True)
+
+            # Compute the differences between consecutive peak dates
+            if len(drawdown_dates) > 1:
+                differences = drawdown_dates.diff().dropna()  # results in Timedelta objects
+                max_difference = differences.max().days   # max drawdown duration in days
             else:
-                drawdown_duration_days = None  # not recovered yet
+                max_difference = 0  # only one peak, no drawdown
 
-            recovery_factor = (portfolio['eq curve'].iloc[-1] - portfolio['eq curve'].iloc[0]) / abs(mdd)
 
             metrics_dict = {
                 'Portfolio CAGR': round(cagr * 100, 2),
@@ -281,8 +279,7 @@ class CalculateMetrics:
                 'Portfolio Payoff Ratio': payoff_ratio,
                 'Portfolio Trading Edge': trading_edge,
                 'Portfolio Basic Sortino': basic_sortino,
-                'Portfolio Drawdown Duration (days)': drawdown_duration_days,
-                'Portfolio Recovery Factor': recovery_factor
+                'Portfolio Drawdown Duration (days)': max_difference,
             }
 
             metrics_df = pd.DataFrame([metrics_dict])
