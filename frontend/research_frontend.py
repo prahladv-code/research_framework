@@ -233,7 +233,7 @@ def strategy_driver():
     folder_paths = {
         'PCCO_SPOT': './tradesheets/pcco/',
         'PCCO_OPT': './tradesheets/pcco_opt/',
-        'PRICEMA': './tradesheets/pricema'
+        'PRICEMA': './tradesheets/pricema/'
     }
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
     slippage_pct = st.number_input('Slippage Percentage', 0.0, 0.05, key = 'slippage')
