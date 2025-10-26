@@ -250,23 +250,24 @@ class CalculateMetrics:
 
             running_max = portfolio['eq curve'].cummax()
             drawdown = (portfolio['eq curve'] - running_max) / running_max
+            portfolio['drawdown'] = drawdown
             mdd = drawdown.min()
             calmar = cagr / abs(mdd)
 
             # --- New: Drawdown recovery time and recovery factor ---
-            drawdown_start = df['drawdown'].idxmin()  # trough index
-            peak_before_trough = df['Equity Curve'][:drawdown_start].idxmax()  # peak before trough
+            drawdown_start = portfolio['drawdown'].idxmin()  # trough index
+            peak_before_trough = portfolio['Equity Curve'][:drawdown_start].idxmax()  # peak before trough
             # first index after trough where Equity Curve >= previous peak
             # Slice equity curve from trough to the end
-            eq_slice = df['Equity Curve'].loc[drawdown_start:]
+            eq_slice = portfolio['Equity Curve'].loc[drawdown_start:]
 
             # Boolean mask for recovery points
-            recovery_points = eq_slice.index[eq_slice >= df['Equity Curve'].loc[peak_before_trough]]
+            recovery_points = eq_slice.index[eq_slice >= portfolio['Equity Curve'].loc[peak_before_trough]]
 
             # Compute duration
             if len(recovery_points) > 0:
                 recovery_index = recovery_points[0]
-                drawdown_duration_days = (df['timestamp'].iloc[recovery_index] - df['timestamp'].iloc[peak_before_trough]).days
+                drawdown_duration_days = (portfolio['timestamp'].iloc[recovery_index] - portfolio['timestamp'].iloc[peak_before_trough]).days
             else:
                 drawdown_duration_days = None  # not recovered yet
 
