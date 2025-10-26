@@ -256,13 +256,13 @@ class CalculateMetrics:
 
             # --- New: Drawdown recovery time and recovery factor ---
             drawdown_start = portfolio['drawdown'].idxmin()  # trough index
-            peak_before_trough = portfolio['Equity Curve'][:drawdown_start].idxmax()  # peak before trough
-            # first index after trough where Equity Curve >= previous peak
+            peak_before_trough = portfolio['eq curve'][:drawdown_start].idxmax()  # peak before trough
+            # first index after trough where eq curve >= previous peak
             # Slice equity curve from trough to the end
-            eq_slice = portfolio['Equity Curve'].loc[drawdown_start:]
+            eq_slice = portfolio['eq curve'].loc[drawdown_start:]
 
             # Boolean mask for recovery points
-            recovery_points = eq_slice.index[eq_slice >= portfolio['Equity Curve'].loc[peak_before_trough]]
+            recovery_points = eq_slice.index[eq_slice >= portfolio['eq curve'].loc[peak_before_trough]]
 
             # Compute duration
             if len(recovery_points) > 0:
