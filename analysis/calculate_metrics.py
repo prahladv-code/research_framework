@@ -170,7 +170,7 @@ class CalculateMetrics:
         # Compute duration
         if len(recovery_points) > 0:
             recovery_index = recovery_points[0]
-            drawdown_duration_days = (df['timestamp'].iloc[recovery_index] - df['timestamp'].iloc[peak_before_trough]).days
+            drawdown_duration_days = (df['timestamp'].loc[recovery_index] - df['timestamp'].loc[peak_before_trough]).days
         else:
             drawdown_duration_days = None  # not recovered yet
 
@@ -267,7 +267,7 @@ class CalculateMetrics:
             # Compute duration
             if len(recovery_points) > 0:
                 recovery_index = recovery_points[0]
-                drawdown_duration_days = (portfolio['timestamp'].iloc[recovery_index] - portfolio['timestamp'].iloc[peak_before_trough]).days
+                drawdown_duration_days = (portfolio['timestamp'].loc[recovery_index] - portfolio['timestamp'].loc[peak_before_trough]).days
             else:
                 drawdown_duration_days = None  # not recovered yet
 
