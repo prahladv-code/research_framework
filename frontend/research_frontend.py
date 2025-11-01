@@ -56,7 +56,7 @@ def calculate_metrics(folder_path, initial_margin, slippage_pct):
     return metrics_df
 
 
-def calculate_pl_distribution(folder_path, initial_margin):
+def calculate_pl_distribution(folder_path, initial_margin, start_date, end_date):
     def plot_pl_distribution(df):
         df_perc = calc.calculate_pl_distribution(df, initial_margin)
         x= df_perc[df_perc['percentage_pl'].notna()]
@@ -88,8 +88,16 @@ def calculate_pl_distribution(folder_path, initial_margin):
         "Select A UID to Generate P/L Distribution",
         uids
     )
-    df = pd.read_parquet(f'{folder_path}{strat}.parquet')
-    plot_pl_distribution(df)
+    if strat:
+        df = pd.read_parquet(f'{folder_path}{strat}.parquet')
+        start_date, end_date = st.date_input(
+            "Select date range:",
+            value=(df['timestamp'].min().date(), df['timestamp'].max().date()),
+            min_value=df['timestamp'].min().date(),
+            max_value=df['timestamp'].max().date()
+        )
+        filtered_df = df[(df['timestamp'].dt.date >= start_date) & (df['timestamp'].dt.date <= end_date)]
+        plot_pl_distribution(filtered_df)
 
 
 def downloads_section():
