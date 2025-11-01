@@ -62,7 +62,7 @@ def calculate_pl_distribution(folder_path, initial_margin):
         fig = px.histogram(
             df_perc,
             x='percentage_pl',
-            nbins=40,
+            nbins=200,
             title='Frequency Distribution Of P/L (Returns)',
             labels={'percentage_pl': '% Profit/Loss'},
             opacity=0.7,
@@ -71,7 +71,6 @@ def calculate_pl_distribution(folder_path, initial_margin):
             xaxis_title = 'P/L',
             yaxis_title = 'Frequency',
             template = 'plotly_dark',
-            xaxis_tickformat = '.2%'
         )
         st.plotly_chart(fig, use_container_width=True)
 
