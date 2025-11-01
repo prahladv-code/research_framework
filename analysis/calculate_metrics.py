@@ -300,7 +300,10 @@ class CalculateMetrics:
         corr_matrix = combined_df.corr()
         return corr_matrix
     
-
+    def calculate_pl_distribution(self, df, initial_margin):
+        df['P/L'] = pd.to_numeric(df['P/L'], errors='coerce')
+        df['percentage_pl'] = (df['P/L']/initial_margin)*100
+        return df
 
 
 

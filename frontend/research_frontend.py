@@ -55,6 +55,38 @@ def calculate_metrics(folder_path, initial_margin, slippage_pct):
     st.dataframe(metrics_df)
     return metrics_df
 
+
+def calculate_pl_distribution(folder_path, initial_margin):
+    def plot_pl_distribution(df):
+        df_perc = calc.calculate_pl_distribution(df, initial_margin)
+        fig = px.histogram(
+            df_perc,
+            x='percentage_pl',
+            nbins=40,
+            title='Frequency Distribution Of P/L (Returns)',
+            labels={'percentage_pl': '% Profit/Loss'},
+            opacity=0.7,
+        )
+        fig.update_layout(
+            xaxis_title = 'P/L',
+            yaxis_title = 'Frequency',
+            template = 'plotly_dark',
+            xaxis_tickformat = '.2%'
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+
+    uids = []
+    for file in os.listdir(folder_path):
+        uids.append(file[:-8])
+    strat = st.selectbox(
+        "Select A UID to Generate P/L Distribution",
+        uids
+    )
+    df = pd.read_parquet(f'{folder_path}{strat}.parquet')
+    plot_pl_distribution(df)
+
+
 def downloads_section():
 
     folder_path = ''
@@ -68,9 +100,9 @@ def downloads_section():
         if strat == "PCCO_SPOT":
             folder_path = './tradesheets/pcco/'
         elif strat == "PCCO_OPT":
-            folder_path = './tradesheets/pcco_opt'
+            folder_path = './tradesheets/pcco_opt/'
         elif strat == "PRICEMA":
-            folder_path = './tradesheets/pricema'
+            folder_path = './tradesheets/pricema/'
         
         # Check if folder exists
         if os.path.exists(folder_path):
