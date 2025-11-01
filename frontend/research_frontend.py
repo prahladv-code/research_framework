@@ -279,6 +279,7 @@ def strategy_driver():
         display_multi_select_strats(folder_path, initial_margin, slippage_pct)
         display_correlation_matrix(folder_path)
         calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_pl_distribution(folder_path, initial_margin)
 
     elif selected_strat == 'PCCO_OPT':
         folder_path = folder_paths.get(selected_strat)
@@ -287,6 +288,7 @@ def strategy_driver():
         display_multi_select_strats(folder_path, initial_margin, slippage_pct)
         display_correlation_matrix(folder_path)
         calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_pl_distribution(folder_path, initial_margin)
     
     elif selected_strat == 'PRICEMA':
         folder_path = folder_paths.get(selected_strat)
@@ -295,6 +297,7 @@ def strategy_driver():
         display_multi_select_strats(folder_path, initial_margin, slippage_pct)
         display_correlation_matrix(folder_path)
         calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_pl_distribution(folder_path, initial_margin)
 
 
 
