@@ -9,7 +9,7 @@ import numpy as np
 import sys
 from pathlib import Path
 import matplotlib.pyplot as plt
-
+from scipy.stats import gaussian_kde
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 logo_path = os.path.join(BASE_DIR, "108 TEST LOGO.png")
@@ -59,6 +59,7 @@ def calculate_metrics(folder_path, initial_margin, slippage_pct):
 def calculate_pl_distribution(folder_path, initial_margin):
     def plot_pl_distribution(df):
         df_perc = calc.calculate_pl_distribution(df, initial_margin)
+        x= df['percentage_pl']
         fig = px.histogram(
             df_perc,
             x='percentage_pl',
@@ -68,6 +69,9 @@ def calculate_pl_distribution(folder_path, initial_margin):
             opacity=0.7,
             histnorm='probability density'
         )
+        kde = gaussian_kde(x)
+        x_range = np.linspace(x.min(), x.max(), 500)
+        fig.add_scatter(x=x_range, y=kde(x_range), mode='lines', name='Density', line=dict(color='red'))
         fig.update_layout(
             xaxis_title = 'P/L',
             yaxis_title = 'Frequency',
