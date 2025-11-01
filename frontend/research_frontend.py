@@ -60,6 +60,7 @@ def calculate_pl_distribution(folder_path, initial_margin):
     def plot_pl_distribution(df):
         df_perc = calc.calculate_pl_distribution(df, initial_margin)
         x= df_perc[df_perc['percentage_pl'].notna()]
+        dist = x['percentage_pl']
         fig = px.histogram(
             df_perc,
             x='percentage_pl',
@@ -69,8 +70,8 @@ def calculate_pl_distribution(folder_path, initial_margin):
             opacity=0.7,
             histnorm='probability density'
         )
-        kde = gaussian_kde(x)
-        x_range = np.linspace(x.min(), x.max(), 500)
+        kde = gaussian_kde(dist)
+        x_range = np.linspace(dist.min(), dist.max(), 500)
         fig.add_scatter(x=x_range, y=kde(x_range), mode='lines', name='Density', line=dict(color='red'))
         fig.update_layout(
             xaxis_title = 'P/L',
