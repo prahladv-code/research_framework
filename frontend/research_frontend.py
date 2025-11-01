@@ -59,7 +59,7 @@ def calculate_metrics(folder_path, initial_margin, slippage_pct):
 def calculate_pl_distribution(folder_path, initial_margin):
     def plot_pl_distribution(df):
         df_perc = calc.calculate_pl_distribution(df, initial_margin)
-        x= df_perc['percentage_pl']
+        x= df_perc[df_perc['percentage_pl'].notna()]
         fig = px.histogram(
             df_perc,
             x='percentage_pl',
