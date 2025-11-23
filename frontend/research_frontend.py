@@ -48,6 +48,7 @@ def calculate_metrics(folder_path, initial_margin, slippage_pct):
             df_metrics, metrics = calc.calculate_metrics(df, initial_margin, slippage_pct)
             uid = file.split('.parquet')[0]
             metrics['uid'] = uid
+            print(metrics)
             metrics_list.append(metrics)
         except Exception as e:
             print(f'ERROR in {file}: {e}')
