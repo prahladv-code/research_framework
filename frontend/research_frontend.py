@@ -60,8 +60,8 @@ def calculate_metrics(folder_path, initial_margin, slippage_pct):
 def calculate_pl_distribution(folder_path, initial_margin):
     def plot_pl_distribution(df):
         df_perc = calc.calculate_pl_distribution(df, initial_margin)
-        x= df_perc[df_perc['percentage_pl'].notna()]
-        dist = x['percentage_pl']
+        dist = df_perc[df_perc['percentage_pl'].notna()]['percentage_pl']
+
         fig = px.histogram(
             df_perc,
             x='percentage_pl',
@@ -69,36 +69,39 @@ def calculate_pl_distribution(folder_path, initial_margin):
             title='Frequency Distribution Of P/L (Returns)',
             labels={'percentage_pl': '% Profit/Loss'},
             opacity=0.7,
-            histnorm='probability density'
+            histnorm='probability density',     # keep or remove based on your scale preference
         )
-        kde = gaussian_kde(dist)
-        x_range = np.linspace(dist.min(), dist.max(), 500)
-        fig.add_scatter(x=x_range, y=kde(x_range), mode='lines', name='Density', line=dict(color='red'))
+
         fig.update_layout(
-            xaxis_title = 'P/L',
-            yaxis_title = 'Frequency',
-            template = 'plotly_dark',
+            xaxis_title='P/L',
+            yaxis_title='Frequency',
+            template='plotly_dark'
         )
+
         st.plotly_chart(fig, use_container_width=True)
 
-
+    # --- existing UI logic ---
     uids = []
     for file in os.listdir(folder_path):
         uids.append(file[:-8])
+
     strat = st.selectbox(
         "Select A UID to Generate P/L Distribution",
         uids
     )
+
     if strat:
-        df = pd.read_parquet(f'{folder_path}{strat}.parquet')
+        df = pd.read_parquet(f"{folder_path}{strat}.parquet")
         start_date, end_date = st.date_input(
             "Select date range:",
             value=(df['timestamp'].min().date(), df['timestamp'].max().date()),
             min_value=df['timestamp'].min().date(),
             max_value=df['timestamp'].max().date()
         )
+
         filtered_df = df[(df['timestamp'].dt.date >= start_date) & (df['timestamp'].dt.date <= end_date)]
         plot_pl_distribution(filtered_df)
+
 
 
 def downloads_section():
