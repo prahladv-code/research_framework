@@ -69,7 +69,7 @@ def calculate_pl_distribution(folder_path, initial_margin):
             title='Frequency Distribution Of P/L (Returns)',
             labels={'percentage_pl': '% Profit/Loss'},
             opacity=0.7,
-            histnorm='probability density',     # keep or remove based on your scale preference
+            # histnorm='probability density',     # keep or remove based on your scale preference
         )
 
         fig.update_layout(
