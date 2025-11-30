@@ -43,6 +43,7 @@ class PRICEMA:
         # self.atr_stochastic_period = int(uid_split.pop(0))
         self.timeframe = uid_split.pop(0)
         self.reentry = uid_split.pop(0) == 'True'
+        self.trailing_stop_period = self.ma_period / 2
     
     def create_itertupes(self, db):
         return db.itertuples(index=False)
@@ -61,6 +62,46 @@ class PRICEMA:
         db['normalised_tr'] = (db['tr']/db['close'])*100
         db['atr_ma'] = db['normalised_tr'].rolling(ma_period).mean()
         return db
+    
+    def calculate_stochastic(self, db, period=14, smooth_k=3):
+        # Calculate rolling highest high and lowest low
+        db['highest_high'] = db['high'].rolling(period).max()
+        db['lowest_low'] = db['low'].rolling(period).min()
+
+        # Raw %K Stochastic
+        db['stochastic'] = ((db['close'] - db['lowest_low']) /
+                    (db['highest_high'] - db['lowest_low'])) * 100
+
+        # Smooth %K (3-period SMA default)
+        db['stochastic_ma'] = db['stochastic'].rolling(smooth_k).mean()
+
+        return db
+
+    def calculate_chandelier_exit(self, db, multiplier=3):
+        """
+        Calculates chandelier long and short trailing stop based on ATR
+        using the self.trailing_stop_period lookback window
+        """
+        period = int(self.trailing_stop_period)
+
+        # compute ATR the correct way
+        db['prev_close'] = db['close'].shift(1)
+        db['tr'] = np.maximum.reduce([
+            db['high'] - db['low'],
+            (db['high'] - db['prev_close']).abs(),
+            (db['low'] - db['prev_close']).abs()
+        ])
+        db['atr'] = db['tr'].rolling(period).mean()
+
+        # Chandelier Exit bands
+        db['highest_high'] = db['high'].rolling(period).max()
+        db['lowest_low'] = db['low'].rolling(period).min()
+
+        db['chandelier_long'] = db['highest_high'] - multiplier * db['atr']
+        db['chandelier_short'] = db['lowest_low'] + multiplier * db['atr']
+
+        return db
+
 
     def gen_signals(self):
         resample_dict = {
@@ -80,15 +121,15 @@ class PRICEMA:
             .reset_index()
         )
         iterable_df['ma'] = iterable_df['close'].rolling(self.ma_period).mean()
-        atr_plugin = self.calculate_atr_indicator(iterable_df, self.ma_period)
-        iterable_df = atr_plugin.copy()
+        stochastic_plugin = self.calculate_stochastic(iterable_df)
+        iterable_df = stochastic_plugin.copy()
         iterable = self.create_itertupes(iterable_df)
         self.in_position = 0
         for self.row in iterable:
             new_day = self.check_new_day(self.row.timestamp.date())
 
             #ENTRY
-            if self.row.close > self.row.ma and self.row.normalised_tr > self.row.atr_ma:
+            if self.row.close > self.row.ma and self.row.stochastic > self.row.stochastic_ma:
                 if self.in_position == -1:
                     self.exit_price = self.row.close
                     self.exit_trade = 'COVER'
@@ -167,7 +208,7 @@ class PRICEMA:
                                 }
                     )
 
-            if self.row.close < self.row.ma and self.row.normalised_tr > self.row.atr_ma:
+            if self.row.close < self.row.ma and self.row.stochastic > self.row.stochastic_ma:
                 if self.in_position == 1:
                     self.exit_price = self.row.close
                     self.exit_trade = 'SELL'
