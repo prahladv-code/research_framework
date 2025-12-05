@@ -277,6 +277,9 @@ def calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct):
     else:
         st.info("Select The Checkbox Above to Display Average Of Optimizations.")
 
+def portfolios_driver():
+    pass
+
 
 def strategy_driver():
     strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL']  # both options in the same radio
@@ -343,11 +346,13 @@ def strategy_driver():
 
 def main():
     homepage()
-    section = st.sidebar.radio("Select section:", ["Strats", "Downloads"])
+    section = st.sidebar.radio("Select section:", ["Strats", "Downloads", "Portfolios"])
     if section == "Downloads":
         downloads_section()
     elif section == "Strats":
         strategy_driver()
+    elif section == 'Portfolios':
+        portfolios_driver()
     
 
 
