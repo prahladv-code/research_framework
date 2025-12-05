@@ -3,13 +3,14 @@ import multiprocessing as mp
 
 ma_iterations = [33, 63, 93]
 timeframe_iterations = [25]
-
+multiplier_iterations = [1, 1.5, 2, 2.5, 3, 3.5, 4]
 uids = []
 for ma in ma_iterations:
     for timeframe in timeframe_iterations:
-        # You can use a static method or small helper
-        uid = f"PRICEMATRAIL_niftyfut_{ma}_{timeframe}_False"
-        uids.append(uid)
+        for multiplier in multiplier_iterations:
+            # You can use a static method or small helper
+            uid = f"PRICEMATRAIL_niftyfut_{ma}_{timeframe}_False_{multiplier}"
+            uids.append(uid)
 
 def run_backtest(uid):
     backtest = PRICEMA()         # instantiate here (not outside)

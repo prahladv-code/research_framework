@@ -220,7 +220,7 @@ class CalculateMetrics:
 
             total_trades = len(portfolio['Daily P/L'])
             winners = len(portfolio[portfolio['Daily P/L'] > 0])
-            losers = len(portfolio[portfolio['Daily P/L'] < 0])
+            losers = len(portfolio[portfolio['Daily P/L'] <= 0])
             win_percentage = winners / total_trades * 100
             loss_percentage = losers / total_trades * 100
 

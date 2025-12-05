@@ -46,6 +46,7 @@ class PRICEMA:
         self.timeframe = uid_split.pop(0)
         self.reentry = uid_split.pop(0) == 'True'
         self.trailing_stop_period = self.ma_period / 2
+        self.multiplier = float(uid_split.pop(0))
     
     def create_itertupes(self, db):
         return db.itertuples(index=False)
@@ -79,7 +80,7 @@ class PRICEMA:
 
         return db
 
-    def calculate_chandelier_exit(self, db, multiplier=3):
+    def calculate_chandelier_exit(self, db):
         """
         Calculates chandelier long and short trailing stop based on ATR
         using the self.trailing_stop_period lookback window
@@ -99,8 +100,8 @@ class PRICEMA:
         db['highest_high'] = db['high'].rolling(period).max()
         db['lowest_low'] = db['low'].rolling(period).min()
 
-        db['chandelier_long'] = db['highest_high'] - multiplier * db['atr']
-        db['chandelier_short'] = db['lowest_low'] + multiplier * db['atr']
+        db['chandelier_long'] = db['highest_high'] - self.multiplier * db['atr']
+        db['chandelier_short'] = db['lowest_low'] + self.multiplier * db['atr']
 
         return db
 
