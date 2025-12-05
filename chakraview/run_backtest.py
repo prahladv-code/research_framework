@@ -1,4 +1,4 @@
-from chakraview.PRICEMA_ATR import PRICEMA
+from chakraview.PRICEMA_ATR_EXIT import PRICEMA
 import multiprocessing as mp
 
 ma_iterations = [33, 63, 93]
@@ -8,7 +8,7 @@ uids = []
 for ma in ma_iterations:
     for timeframe in timeframe_iterations:
         # You can use a static method or small helper
-        uid = f"PRICEMAATR_niftyfut_{ma}_{timeframe}_False"
+        uid = f"PRICEMATRAIL_niftyfut_{ma}_{timeframe}_False"
         uids.append(uid)
 
 def run_backtest(uid):

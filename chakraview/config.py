@@ -1,5 +1,7 @@
 import datetime
+import redis
 
+r = redis.Redis('localhost', 6379, 0)
 sessions = {
     'nifty': {
         'start': datetime.time(9, 15),

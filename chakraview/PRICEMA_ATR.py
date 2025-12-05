@@ -25,6 +25,8 @@ class PRICEMA:
         self.entry_time = None
         self.entry_price = None
         self.position_count = 0
+        self.last_signal = None
+        self.wait_for_cross = False
     
     def check_new_day(self, date):
         self.date = date
@@ -121,11 +123,19 @@ class PRICEMA:
             .reset_index()
         )
         iterable_df['ma'] = iterable_df['close'].rolling(self.ma_period).mean()
-        stochastic_plugin = self.calculate_stochastic(iterable_df)
-        iterable_df = stochastic_plugin.copy()
+        # stochastic_plugin = self.calculate_stochastic(iterable_df)
+        chandelier_plugin = self.calculate_chandelier_exit(iterable_df)
+        iterable_df = chandelier_plugin.copy()
         iterable = self.create_itertupes(iterable_df)
         self.in_position = 0
         for self.row in iterable:
+            # if self.last_signal:
+            #     if self.last_signal == 'LONG' and self.row.close < self.row.ma:
+            #         self.wait_for_cross = False
+
+            #     if self.last_signal == 'SHORT' and self.row.close > self.row.ma:
+            #         self.wait_for_cross = False
+
             new_day = self.check_new_day(self.row.timestamp.date())
 
             #ENTRY

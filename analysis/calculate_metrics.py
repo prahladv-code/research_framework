@@ -39,11 +39,11 @@ class CalculateMetrics:
         # Initialize P/L column
         df['P/L'] = np.nan
 
-        # Group by date
-        df_groups = df.groupby(df['timestamp'].dt.date)
+        # Group by symbol instead of date
+        df_groups = df.groupby('symbol')
 
-        for group, df1 in df_groups:
-            if len(df1) == 2:
+        for symbol, df1 in df_groups:
+            if len(df1) / 2 == 0:
                 if df1['trade'].iloc[0] == 'BUY':
                     entry_price = df1.loc[df1['trade'] == 'BUY', 'price'].iloc[0]
                     exit_rows = df1.loc[df1['trade'] == 'SELL', 'price']
@@ -70,6 +70,7 @@ class CalculateMetrics:
                 df.loc[df1.index[-1], 'P/L'] = 0
 
         return df
+
 
     def calculate_pl_in_positional_tradesheet(self, df):
 

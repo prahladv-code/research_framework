@@ -4,6 +4,7 @@ import duckdb
 import datetime
 import time as t
 import logging
+from scipy.stats import norm
 
 class ChakraView:
     def __init__(self):
@@ -109,5 +110,203 @@ class ChakraView:
         print(f'Elapsed Time In Getting Premium Details: {end-start}')
         return min_row_dict
     
+    def find_ticker_by_delta(self, date, time, delta, right, spot):
+        tsdf = self.get_all_ticks_by_timestamp(date, time)
+
+        # ---------------------------
+        # Black-Scholes Pricing
+        # ---------------------------
+        def bs_price(opt_type, S, K, r, sigma, T):
+            if T <= 0 or sigma <= 0:
+                return np.nan
+            
+            d1 = (np.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
+            d2 = d1 - sigma*np.sqrt(T)
+
+            if opt_type == "CE":
+                return S*norm.cdf(d1) - K*np.exp(-r*T)*norm.cdf(d2)
+            else:
+                return K*np.exp(-r*T)*norm.cdf(-d2) - S*norm.cdf(-d1)
+
+
+        # ---------------------------
+        # Implied Volatility Solver
+        # ---------------------------
+        def solve_iv(opt_type, S, K, r, T, market_price, tol=1e-6, max_iter=100):
+            sigma = 0.20  # Start guess
+
+            for _ in range(max_iter):
+
+                price = bs_price(opt_type, S, K, r, sigma, T)
+                if np.isnan(price):
+                    return np.nan
+
+                # Vega
+                d1 = (np.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
+                vega = S * norm.pdf(d1) * np.sqrt(T)
+                if vega < 1e-8:
+                    return np.nan
+
+                diff = price - market_price
+                sigma_new = sigma - diff / vega
+
+                if abs(sigma_new - sigma) < tol:
+                    return max(sigma_new, 1e-6)
+
+                sigma = sigma_new
+
+            return np.nan
+
+
+        # ---------------------------
+        # Main Function
+        # ---------------------------
+        def compute_iv_delta(tsdf: pd.DataFrame, date, spot, r: float = 0.07):
+            # --------------------------------------------------------
+            # 1. Extract Spot Price (use "NIFTY" row)
+            # --------------------------------------------------------
+            spot = spot
+
+            # --------------------------------------------------------
+            # 2. Parse Expiry from symbols
+            # --------------------------------------------------------
+            def extract_expiry(sym: str):
+                # Option symbols look like: NIFTY02JAN2521600PE
+                # Extract substring at positions 5 to 12 → "02JAN25"
+                if len(sym) >= 12 and sym.startswith("NIFTY"):
+                    part = sym[5:12]  # DDMMMYY
+                    try:
+                        return datetime.datetime.strptime(part, "%d%b%y")
+                    except:
+                        return pd.NaT
+                return pd.NaT
+
+            tsdf["expiry"] = tsdf["symbol"].apply(extract_expiry)
+
+            # Convert to pandas datetime explicitly
+            tsdf["expiry"] = pd.to_datetime(tsdf["expiry"], errors="coerce")
+
+            # --------------------------------------------------------
+            # 3. Compute time to maturity
+            # --------------------------------------------------------
+            today = pd.to_datetime(date)
+            tsdf["ttm"] = (tsdf["expiry"] - today).dt.days / 365.0
+
+            # --------------------------------------------------------
+            # 4. Compute IV
+            # --------------------------------------------------------
+            ivs = []
+
+            for _, row in tsdf.iterrows():
+
+                if row["right"] not in ("CE", "PE"):
+                    ivs.append(np.nan)
+                    continue
+
+                iv = solve_iv(
+                    opt_type=row["right"],
+                    S=spot,
+                    K=row["strike"],
+                    r=r,
+                    T=row["ttm"],
+                    market_price=row["c"]
+                )
+                ivs.append(iv)
+
+            tsdf["iv"] = ivs
+
+            # --------------------------------------------------------
+            # 5. Compute Delta
+            # --------------------------------------------------------
+            deltas = []
+
+            for _, row in tsdf.iterrows():
+
+                if row["right"] not in ("CE", "PE"):
+                    deltas.append(np.nan)
+                    continue
+
+                S = spot
+                K = row["strike"]
+                sigma = row["iv"]
+                T = row["ttm"]
+
+                if pd.isna(sigma) or sigma <= 0 or T <= 0:
+                    deltas.append(np.nan)
+                    continue
+
+                d1 = (np.log(S/K) + (r + 0.5*sigma*sigma)*T) / (sigma*np.sqrt(T))
+
+                if row["right"] == "CE":
+                    delta = norm.cdf(d1)
+                else:
+                    delta = norm.cdf(d1) - 1
+
+                deltas.append(delta)
+
+            tsdf["delta"] = deltas
+
+            return tsdf
+
+        delta_df = compute_iv_delta(tsdf, date, spot)
+        if right.upper() == 'CE':
+            call_df = delta_df[delta_df['right'] == 'CE']
+            call_df['delta_diff'] = (call_df['delta'] - delta).abs()
+            if call_df['delta_diff'].isna().all() or call_df.empty:
+                return {}
+            best_row = call_df.loc[call_df['delta_diff'].idxmin()]
+            delta_dict = {
+                'symbol': best_row['symbol'],
+                'o': best_row['o'],
+                'h': best_row['h'],
+                'l': best_row['l'],
+                'c': best_row['c'],
+                'v': best_row['v'],
+                'oi': best_row['oi'],
+                'strike': best_row['strike'],
+                'right': best_row['right'],
+                'delta': best_row['delta']
+            }
+            self.log.info(f'SUCCESSFULLY FOUND CALL TICKER {delta_dict}')
+            return delta_dict if delta_dict else {}
+        elif right.upper() == 'PE':
+            put_df = delta_df[delta_df['right'] == 'PE']
+            put_df = put_df.copy()
+            put_df['delta'] = put_df['delta'].abs()
+            put_df['delta_diff'] = (put_df['delta'] - delta).abs()
+            if put_df['delta_diff'].isna().all() or put_df.empty:
+                return {}
+            best_row = put_df.loc[put_df['delta_diff'].idxmin()]
+            
+            delta_dict = {
+                'symbol': best_row['symbol'],
+                'o': best_row['o'],
+                'h': best_row['h'],
+                'l': best_row['l'],
+                'c': best_row['c'],
+                'v': best_row['v'],
+                'oi': best_row['oi'],
+                'strike': best_row['strike'],
+                'right': best_row['right'],
+                'delta': best_row['delta']
+            }
+            self.log.info(f'SUCCESSFULLY FOUND PUT TICKER {delta_dict}')
+            return delta_dict if delta_dict else {}
+        
+    
+    def find_ticker_by_strike(self, date, time, strike, right):
+        timestampdf = self.get_all_ticks_by_timestamp(date, time)
+        filtered_df = timestampdf[(timestampdf['strike'] == strike) & timestampdf['right'] == right]
+        dict_to_return = {
+                'symbol': filtered_df['symbol'],
+                'o': filtered_df['o'],
+                'h': filtered_df['h'],
+                'l': filtered_df['l'],
+                'c': filtered_df['c'],
+                'v': filtered_df['v'],
+                'oi': filtered_df['oi']
+            }
+        return dict_to_return
+
 
 
