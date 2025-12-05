@@ -142,7 +142,7 @@ class CalculateMetrics:
         
         total_trades = len(df[df['P/L'].notna()])
         winners = len(df[df['P/L'] > 0])
-        losers = len(df[df['P/L'] < 0])
+        losers = len(df[df['P/L'] <= 0])
         win_percentage = winners/total_trades * 100
         loss_percentage = losers/total_trades * 100
         
