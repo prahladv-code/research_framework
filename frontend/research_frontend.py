@@ -285,12 +285,14 @@ def concat_all_uids(folder_path, uid_list):
         uid = file.split('.')[0]
         uid  = uid if uid in uid_list else None
         if uid:
-            df = pd.read_parquet(f'{folder_path}/{uid}.parquet')
+            df = pd.read_parquet(f'{folder_path}{uid}.parquet')
             all_dfs.append(df)
     
     strat_df = pd.concat(all_dfs, ignore_index=True)
     return strat_df
 
+
+# def calculate_portfolio_df()
 
 def portfolios_driver():
     folder_paths = {
@@ -298,9 +300,10 @@ def portfolios_driver():
         'PCCO_OPT': './tradesheets/pcco_opt/',
         'PRICEMA': './tradesheets/pricema/',
         'PRICEMA_ATR': './tradesheets/pricema_atr/',
-        'PRICEMA_TRAIL': './tradesheets/pricema_atr_exit/'
+        'PRICEMA_TRAIL': './tradesheets/pricema_atr_exit/',
+        'IVIX': './tradesheets/ivix/'
     }
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL']
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX']
     
     # Select strategies
     strats = st.multiselect('Strategies', strategies)
@@ -309,9 +312,8 @@ def portfolios_driver():
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
     slippage_pct = st.number_input('Slippage Percentage', 0.0, 0.05, key='slippage')
     
-    uid_list = []
-    selected_tradesheets = {}
     
+    selected_tradesheets = {}
     # Only show tradesheet selection if strategies are selected
     if strats:
         st.subheader("Select Tradesheets")
@@ -338,16 +340,31 @@ def portfolios_driver():
                     
                     if selected:
                         selected_tradesheets[strat] = selected
-                        # Add full paths to uid_list
-                        for ts in selected:
-                            uid_list.append(ts.split('.parquet')[0])
+                        
                 else:
                     st.warning(f"No tradesheets found in {folder_path}")
             else:
                 st.error(f"Folder not found: {folder_path}")
         
-        if uid_list:
-            st.write(f'Selected Strats: {uid_list}')
+        if selected_tradesheets:
+            st.write(f'Selected Strats: {selected_tradesheets}')
+            all_dfs = []
+            for strat, uids in selected_tradesheets:
+                concated_df = concat_all_uids(folder_paths.get(strat), uids)
+                all_dfs.append(concated_df)
+
+            portfolio_df = pd.concat(all_dfs, ignore_index=True)
+            metrics_df, portfolio = calc.calculate_metrics(portfolio_df, initial_margin, slippage_pct)
+            st.write("Portfolio Metrics")
+            st.dataframe(metrics_df)
+            st.divider()
+
+            if not portfolio.empty:
+                fig = px.line(portfolio, x='date', y='eq curve', title='Portfolio Equity Curve')
+                fig.update_traces(line_color='white')
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("No equity curve data available for the selected portfolio.")
 
         
 
@@ -360,7 +377,8 @@ def strategy_driver():
         'PCCO_OPT': './tradesheets/pcco_opt/',
         'PRICEMA': './tradesheets/pricema/',
         'PRICEMA_ATR': './tradesheets/pricema_atr/',
-        'PRICEMA_TRAIL': './tradesheets/pricema_atr_exit/'
+        'PRICEMA_TRAIL': './tradesheets/pricema_atr_exit/',
+        'IVIX': './tradesheets/ivix/'
     }
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
     slippage_pct = st.number_input('Slippage Percentage', 0.0, 0.05, key = 'slippage')
