@@ -122,6 +122,7 @@ class CalculateMetrics:
     
     def calculate_metrics(self, df, initial_margin, slippage_pct):
         df = df[df['P/L'].notna()].copy()
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
         slippage = df['cv'] * slippage_pct
         df['P/L'] = df['P/L'] - slippage
         df['cumsum'] = df['P/L'].cumsum()
