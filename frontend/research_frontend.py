@@ -279,14 +279,56 @@ def calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct):
 
 
 
-def concat_all_uids(folder_path, uid_list):
+def concat_all_uids(folder_path, uid_list, debug=False):
+    """
+    Concatenate multiple parquet files based on uid_list.
+    
+    Args:
+        folder_path: Path to folder containing parquet files
+        uid_list: List of filenames (with or without extensions) to concatenate
+        debug: If True, print debug information
+    
+    Returns:
+        Combined DataFrame from all matching files
+    """
     all_dfs = []
+    matched_files = []
+    
+    # Normalize uid_list to handle both formats (with/without .parquet extension)
+    normalized_uids = set()
+    for uid in uid_list:
+        if uid.endswith('.parquet'):
+            normalized_uids.add(uid.replace('.parquet', ''))
+        else:
+            normalized_uids.add(uid)
+    
+    if debug:
+        print(f"Looking for UIDs: {normalized_uids}")
+        print(f"In folder: {folder_path}")
+    
     for file in os.listdir(folder_path):
-        uid = file.split('.')[0]
-        uid  = uid if uid in uid_list else None
-        if uid:
-            df = pd.read_parquet(f'{folder_path}{uid}.parquet')
-            all_dfs.append(df)
+        if file.endswith('.parquet'):
+            uid = file.replace('.parquet', '')
+            
+            if uid in normalized_uids:
+                file_path = os.path.join(folder_path, file)
+                df = pd.read_parquet(file_path)
+                all_dfs.append(df)
+                matched_files.append(file)
+                if debug:
+                    print(f"✓ Matched: {file}")
+    
+    # Check if we found any matching files
+    if not all_dfs:
+        available_files = [f for f in os.listdir(folder_path) if f.endswith('.parquet')]
+        raise ValueError(
+            f"No matching files found in {folder_path}\n"
+            f"Requested UIDs: {list(normalized_uids)}\n"
+            f"Available files: {available_files[:10]}"  # Show first 10
+        )
+    
+    if debug:
+        print(f"Total files matched: {len(matched_files)}")
     
     strat_df = pd.concat(all_dfs, ignore_index=True)
     return strat_df
