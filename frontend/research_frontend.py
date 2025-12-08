@@ -340,7 +340,7 @@ def portfolios_driver():
                         selected_tradesheets[strat] = selected
                         # Add full paths to uid_list
                         for ts in selected:
-                            uid_list.append(ts.split('.')[0])
+                            uid_list.append(ts.split('.parquet')[0])
                 else:
                     st.warning(f"No tradesheets found in {folder_path}")
             else:
