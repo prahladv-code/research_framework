@@ -277,8 +277,79 @@ def calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct):
     else:
         st.info("Select The Checkbox Above to Display Average Of Optimizations.")
 
+
+
+def concat_all_uids(folder_path, uid_list):
+    all_dfs = []
+    for file in os.listdir(folder_path):
+        uid = file.split('.')[0]
+        uid  = uid if uid in uid_list else None
+        if uid:
+            df = pd.read_parquet(f'{folder_path}/{uid}.parquet')
+            all_dfs.append(df)
+    
+    strat_df = pd.concat(all_dfs, ignore_index=True)
+    return strat_df
+
+
 def portfolios_driver():
-    pass
+    folder_paths = {
+        'PCCO_SPOT': './tradesheets/pcco/',
+        'PCCO_OPT': './tradesheets/pcco_opt/',
+        'PRICEMA': './tradesheets/pricema/',
+        'PRICEMA_ATR': './tradesheets/pricema_atr/',
+        'PRICEMA_TRAIL': './tradesheets/pricema_atr_exit/'
+    }
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL']
+    
+    # Select strategies
+    strats = st.multiselect('Strategies', strategies)
+    
+    # Input parameters
+    initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
+    slippage_pct = st.number_input('Slippage Percentage', 0.0, 0.05, key='slippage')
+    
+    uid_list = []
+    selected_tradesheets = {}
+    
+    # Only show tradesheet selection if strategies are selected
+    if strats:
+        st.subheader("Select Tradesheets")
+        
+        for strat in strats:
+            folder_path = folder_paths.get(strat)
+            
+            # Get list of tradesheets in the folder
+            if os.path.exists(folder_path):
+                tradesheets = [f for f in os.listdir(folder_path) 
+                             if os.path.isfile(os.path.join(folder_path, f))]
+                
+                # Filter for common file types (optional)
+                tradesheets = [f for f in tradesheets 
+                             if f.endswith(('.csv', '.xlsx', '.xls', '.parquet'))]
+                
+                if tradesheets:
+                    # Create multiselect for each strategy
+                    selected = st.multiselect(
+                        f'{strat} Tradesheets',
+                        tradesheets,
+                        key=f'tradesheets_{strat}'
+                    )
+                    
+                    if selected:
+                        selected_tradesheets[strat] = selected
+                        # Add full paths to uid_list
+                        for ts in selected:
+                            uid_list.append(ts.split('.')[0])
+                else:
+                    st.warning(f"No tradesheets found in {folder_path}")
+            else:
+                st.error(f"Folder not found: {folder_path}")
+        
+        if uid_list:
+            st.write(f'Selected Strats: {uid_list}')
+
+        
 
 
 def strategy_driver():
