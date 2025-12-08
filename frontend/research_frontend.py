@@ -399,13 +399,13 @@ def portfolios_driver():
             portfolio_df = pd.concat(all_dfs, ignore_index=True)
             portfolio_df['timestamp'] = pd.to_datetime(portfolio_df['timestamp'])
             portfolio_df = portfolio_df.sort_values(by='timestamp')
-            df_metrics, metrics = calc.calculate_metrics(portdolio_df, initial_margin, slippage_pct)
+            df_metrics, metrics = calc.calculate_metrics(portfolio_df, initial_margin, slippage_pct)
             st.write("Portfolio Metrics")
             st.dataframe([metrics])
             st.divider()
 
             if not df_metrics.empty:
-                fig = px.line(portfolio, x='timestamp', y='eq curve', title='Portfolio Equity Curve')
+                fig = px.line(df_metrics, x='timestamp', y='eq curve', title='Portfolio Equity Curve')
                 fig.update_traces(line_color='white')
                 st.plotly_chart(fig, use_container_width=True)
             else:
