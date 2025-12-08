@@ -389,7 +389,7 @@ def portfolios_driver():
                 st.error(f"Folder not found: {folder_path}")
         
         if selected_tradesheets:
-            st.write(f'Selected Strats: {selected_tradesheets}')
+            # st.write(f'Selected Strats: {selected_tradesheets}')
             all_dfs = []
             # Fixed: Use .items() to properly unpack dictionary
             for strat, uids in selected_tradesheets.items():
