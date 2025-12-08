@@ -349,7 +349,8 @@ def portfolios_driver():
         if selected_tradesheets:
             st.write(f'Selected Strats: {selected_tradesheets}')
             all_dfs = []
-            for strat, uids in selected_tradesheets:
+            # Fixed: Use .items() to properly unpack dictionary
+            for strat, uids in selected_tradesheets.items():
                 concated_df = concat_all_uids(folder_paths.get(strat), uids)
                 all_dfs.append(concated_df)
 
@@ -365,7 +366,6 @@ def portfolios_driver():
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.warning("No equity curve data available for the selected portfolio.")
-
         
 
 
