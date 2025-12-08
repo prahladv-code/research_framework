@@ -405,7 +405,7 @@ def portfolios_driver():
             st.divider()
 
             if not df_metrics.empty:
-                fig = px.line(df_metrics, x='timestamp', y='eq curve', title='Portfolio Equity Curve')
+                fig = px.line(df_metrics, x='timestamp', y='Equity Curve', title='Portfolio Equity Curve')
                 fig.update_traces(line_color='white')
                 st.plotly_chart(fig, use_container_width=True)
             else:
