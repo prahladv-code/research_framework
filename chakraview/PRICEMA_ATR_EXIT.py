@@ -45,7 +45,7 @@ class PRICEMA:
         # self.atr_stochastic_period = int(uid_split.pop(0))
         self.timeframe = uid_split.pop(0)
         self.reentry = uid_split.pop(0) == 'True'
-        self.trailing_stop_period = self.ma_period / 2
+        self.trailing_stop_period = round(self.ma_period / 2, 1)
         self.multiplier = float(uid_split.pop(0))
     
     def create_itertupes(self, db):
