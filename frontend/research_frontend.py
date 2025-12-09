@@ -279,7 +279,7 @@ def calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct):
 
 
 
-def concat_all_uids(folder_path, uid_list, debug=False):
+def concat_all_uids(folder_path, uid_list, strat_weightage, debug=False):
     """
     Concatenate multiple parquet files based on uid_list.
     
@@ -331,6 +331,7 @@ def concat_all_uids(folder_path, uid_list, debug=False):
         print(f"Total files matched: {len(matched_files)}")
     
     strat_df = pd.concat(all_dfs, ignore_index=True)
+    strat_df['P/L'] = strat_df['P/L'] * strat_weightage
     return strat_df
 
 
@@ -356,8 +357,21 @@ def portfolios_driver():
     
     
     selected_tradesheets = {}
+    selected_weights = {}
     # Only show tradesheet selection if strategies are selected
     if strats:
+        st.subheader("Input Weightages for Selected Strategies")
+        for strat in strats:
+            weight = st.number_input(
+                f"Weight for {strat}",
+                min_value=0.0,
+                max_value=100.0,
+                value=1.0,
+                step=0.5,
+                key=f"weight_{strat}"
+            )
+            selected_weights[strat] = weight
+
         st.subheader("Select Tradesheets")
         
         for strat in strats:
@@ -393,7 +407,7 @@ def portfolios_driver():
             all_dfs = []
             # Fixed: Use .items() to properly unpack dictionary
             for strat, uids in selected_tradesheets.items():
-                concated_df = concat_all_uids(folder_paths.get(strat), uids)
+                concated_df = concat_all_uids(folder_paths.get(strat), uids, selected_weights.get(strat))
                 all_dfs.append(concated_df)
 
             portfolio_df = pd.concat(all_dfs, ignore_index=True)
