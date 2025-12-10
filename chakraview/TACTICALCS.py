@@ -20,7 +20,7 @@ class TACTICALCS(ChakraView):
             part = symbol[5:12]  # DDMMMYY
             try:
                 return datetime.datetime.strptime(part, "%d%b%y")
-            except:
+            except: 
                 return pd.NaT
         return pd.NaT
     
