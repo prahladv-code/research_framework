@@ -308,5 +308,15 @@ class ChakraView:
             }
         return dict_to_return
 
+    def place_trade(self, timestamp, symbol, price, qty, cv, trade, system_action):
+        return {
+            'timestamp': timestamp,
+            'symbol': symbol,
+            'price': price,
+            'qty': qty,
+            'cv': cv,
+            'trade': trade,
+            'system_action': system_action
+        }
 
 
