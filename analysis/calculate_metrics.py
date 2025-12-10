@@ -157,6 +157,7 @@ class CalculateMetrics:
         trading_edge = (avg_win_percentage*win_percentage) - (avg_loss_percentage*loss_percentage)
         
         downside_deviation = abs(df.loc[df['P/L'] < 0, 'P/L'].std())
+        downside_deviation = downside_deviation/initial_margin * 100
         basic_sortino = cagr/downside_deviation
 
         # --- New: drawdown recovery time in days ---
@@ -247,6 +248,7 @@ class CalculateMetrics:
             cagr = ((portfolio['eq curve'].iloc[-1] / portfolio['eq curve'].iloc[0]) ** (365 / days)) - 1
 
             downside_deviation = abs(portfolio.loc[portfolio['Daily P/L'] < 0, 'Daily P/L'].std())
+            downside_deviation = downside_deviation/initial_margin * 100
             basic_sortino = cagr / downside_deviation if downside_deviation != 0 else np.nan
 
             running_max = portfolio['eq curve'].cummax()
