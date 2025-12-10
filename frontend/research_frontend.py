@@ -92,6 +92,7 @@ def calculate_pl_distribution(folder_path, initial_margin):
 
     if strat:
         df = pd.read_parquet(f"{folder_path}{strat}.parquet")
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
         start_date, end_date = st.date_input(
             "Select date range:",
             value=(df['timestamp'].min().date(), df['timestamp'].max().date()),
