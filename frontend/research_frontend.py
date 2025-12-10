@@ -428,7 +428,7 @@ def portfolios_driver():
 
 
 def strategy_driver():
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL']  # both options in the same radio
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX']  # both options in the same radio
     selected_strat = st.sidebar.radio('Select A Strategy', strategies, key='pcco_strategy')
     folder_paths = {
         'PCCO_SPOT': './tradesheets/pcco/',
@@ -478,6 +478,15 @@ def strategy_driver():
         calculate_pl_distribution(folder_path, initial_margin)
     
     elif selected_strat == 'PRICEMA_TRAIL':
+        folder_path = folder_paths.get(selected_strat)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
+        calculate_metrics(folder_path, initial_margin, slippage_pct)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
+        display_correlation_matrix(folder_path)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_pl_distribution(folder_path, initial_margin)
+    
+    elif selected_strat == 'IVIX':
         folder_path = folder_paths.get(selected_strat)
         plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
         calculate_metrics(folder_path, initial_margin, slippage_pct)
