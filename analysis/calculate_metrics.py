@@ -141,9 +141,9 @@ class CalculateMetrics:
         max_drawdown = df['drawdown'].min()
         calmar = cagr/abs(max_drawdown)
         
-        total_trades = len(df[df['P/L'].notna()])
+        total_trades = len(df[(df['P/L'].notna()) & (df['P/L'] != 0)])
         winners = len(df[df['P/L'] > 0])
-        losers = len(df[df['P/L'] <= 0])
+        losers = len(df[df['P/L'] < 0])
         win_percentage = winners/total_trades * 100
         loss_percentage = losers/total_trades * 100
         
@@ -220,9 +220,9 @@ class CalculateMetrics:
             )
             portfolio = combined_df[pd.notna(combined_df['Daily P/L'])]
 
-            total_trades = len(portfolio['Daily P/L'])
+            total_trades = len(portfolio[portfolio['Daily P/L'] != 0])
             winners = len(portfolio[portfolio['Daily P/L'] > 0])
-            losers = len(portfolio[portfolio['Daily P/L'] <= 0])
+            losers = len(portfolio[portfolio['Daily P/L'] < 0])
             win_percentage = winners / total_trades * 100
             loss_percentage = losers / total_trades * 100
 
