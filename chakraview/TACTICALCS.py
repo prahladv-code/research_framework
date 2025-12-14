@@ -13,6 +13,8 @@ class TACTICALCS(ChakraView):
         super().__init__()
         self.start = sessions.get('nifty').get('start')
         self.end = sessions.get('nifty').get('end')
+        self.in_position = 0
+        self.signal_list = []
 
     
     def get_expiry(self, symbol):
@@ -50,5 +52,44 @@ class TACTICALCS(ChakraView):
     def create_iterable(self, df):
         return df.itertuples(index=False)
 
-    def generate_signals(self):
+    def generate_db(self, db):
         pass
+
+    def generate_signals(self, row):
+        # ENTRY
+        if row.close > row.ma:
+            if self.in_position == -1:
+                pass
+            elif self.in_position != 1:
+                self.get_short_contract(row.date, row.time, row.close, 'CE')
+                timestamp = str(row.date) + str(row.time)
+                if self.short_contract:
+                    self.in_position = 1
+                    entry_symbol = self.short_contract.get('symbol')
+                    entry_price = self.short_contract.get('c')
+                    entry_signal = self.place_trade(timestamp, entry_symbol, entry_price, 75, 75 * entry_price, 'SHORT', 'SHORT_ENTRY')
+                    self.signal_list.append(entry_signal)
+        
+        if row.close < row.ma:
+            if self.in_position == 1:
+                pass
+            elif self.in_position != -1:
+                self.get_short_contract(row.date, row.time, row.close, 'PE')
+                timestamp = str(row.date) + str(row.time)
+                if self.short_contract:
+                    self.in_position = -1
+                    entry_symbol = self.short_contract.get('symbol')
+                    entry_price = self.short_contract.get('c')
+                    entry_signal = self.place_trade(timestamp, entry_symbol, entry_price, 75, 75 * entry_price, 'SHORT', 'SHORT_ENTRY')
+                    self.signal_list.append(entry_signal)
+        
+        #EXIT
+        if self.calculate_breakeven_condition:
+            if self.in_position == -1:
+                breakeven = self.calculate_breakeven()
+                if row.close <= breakeven:
+                    exit_symbol = self.short_contract.get('symbol')
+                    exit_tick = self.get_tick(exit_symbol, row.date, row.time)
+                    if exit_tick:
+                        pass
+
