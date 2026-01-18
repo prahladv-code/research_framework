@@ -8,7 +8,7 @@ from scipy.stats import norm
 
 class ChakraView:
     def __init__(self):
-        self.daily_tb = duckdb.connect(r"C:\Users\admin\Desktop\DuckDB\nifty_daily.ddb", read_only=True)
+        self.daily_tb = duckdb.connect(r"C:/Users/Prahlad/Desktop/DuckDB/nifty_daily.ddb", read_only=True)
         logging.basicConfig(filename=r'./ck_logger.log',
                                        level = logging.INFO,
                                        format="%(asctime)s [%(levelname)s] %(message)s")

@@ -316,7 +316,7 @@ class PRICEMA:
         signals = self.gen_signals()
         df = pd.DataFrame(signals)
         tradesheet = self.metrics.calculate_pl_in_positional_tradesheet(df)
-        tradesheet.to_parquet(f'C:/Users/admin/VSCode/research/research_framework/tradesheets/pricema/{uid}.parquet')
+        tradesheet.to_parquet(f'C:/Users/Prahlad/108_research/tradesheets/pricema/{uid}.parquet')
         # tradesheet.to_csv(r'C:\Users\admin\VSCode\PRICEMA_niftyfut_33_25_False.csv')
         end = time.time()
         print(f'Elapsed Time In COMPLETING raw Tradesheet Generation: {end-start}')
