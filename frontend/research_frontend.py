@@ -336,7 +336,10 @@ def concat_all_uids(folder_path, uid_list, strat_weightage, debug=False):
     return strat_df
 
 
-# def calculate_portfolio_df()
+def calculate_monthly_returns(df, initial_margin):
+    monthly_returns_tble = calc.calculate_monthly_returns(df, initial_margin)
+    return monthly_returns_tble
+
 
 def portfolios_driver():
     folder_paths = {
@@ -425,8 +428,12 @@ def portfolios_driver():
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.warning("No equity curve data available for the selected portfolio.")
+            
+            st.divider()
+            st.write('Portfolio Monthly Returns')
+            monthly_df = calculate_monthly_returns(portfolio_df, initial_margin)
+            st.dataframe(monthly_df)
         
-
 
 def strategy_driver():
     strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX']  # both options in the same radio

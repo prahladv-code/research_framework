@@ -309,6 +309,48 @@ class CalculateMetrics:
         df['percentage_pl'] = (df['P/L']/initial_margin)*100
         return df
 
+    def calculate_monthly_returns(slef, df, initial_margin):
+        
+        # Ensure datetime
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+
+        # Clean P/L
+        df['P/L'] = df['P/L'].fillna(0)
+
+        # Use realized P/L only (as per your code)
+        df['total_pl'] = df['P/L']
+
+        # Extract year and month
+        df['Year'] = df['timestamp'].dt.year
+        df['Month'] = df['timestamp'].dt.month
+
+        # Aggregate monthly P/L
+        monthly = (
+            df.groupby(['Year', 'Month'])['total_pl']
+            .sum()
+            .reset_index()
+        )
+
+        # Convert to percentage returns
+        monthly['Return %'] = (monthly['total_pl'] / initial_margin) * 100
+
+        # Pivot into calendar format
+        calendar_returns = monthly.pivot(
+            index='Year',
+            columns='Month',
+            values='Return %'
+        )
+
+        # Rename month numbers to names
+        calendar_returns.columns = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ]
+
+        # Optional: sort years
+        calendar_returns = calendar_returns.sort_index()
+
+        return calendar_returns
 
 
 
