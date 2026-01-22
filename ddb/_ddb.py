@@ -1,4 +1,6 @@
 import duckdb
+import pandas as pd
+
 
 class Ddb:
     def __init__(self, db_path: str):
@@ -23,5 +25,49 @@ class Ddb:
         # Optional: unregister after use
         self.conn.unregister("df_tmp")
 
-    def process_expiry_tables(self, df):
-        pass
+
+    def _table_exists(self, table_name: str) -> bool:
+        """
+        Check if a table exists in DuckDB.
+        """
+        result = self.conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM information_schema.tables
+            WHERE table_schema = 'main'
+              AND table_name = ?
+            """,
+            [table_name]
+        ).fetchone()[0]
+        return result > 0
+
+    def process_expiry_tables(self, df: pd.DataFrame):
+        """
+        Create or append expiry-wise tables named as:
+        expiry_YYYY-MM-DD
+        """
+
+        # Ensure expiry is string-friendly (important!)
+        df = df.copy()
+        df["expiry"] = pd.to_datetime(df["expiry"]).dt.strftime("%Y-%m-%d")
+
+        for expiry, expiry_df in df.groupby("expiry"):
+            table_name = f'expiry_{expiry}'
+
+            # Register temp dataframe
+            self.conn.register("df_tmp", expiry_df)
+
+            if not self._table_exists(table_name):
+                # Create new table
+                self.conn.execute(f"""
+                    CREATE TABLE "{table_name}" AS
+                    SELECT * FROM df_tmp
+                """)
+            else:
+                # Append to existing table
+                self.conn.execute(f"""
+                    INSERT INTO "{table_name}"
+                    SELECT * FROM df_tmp
+                """)
+
+            self.conn.unregister("df_tmp")
