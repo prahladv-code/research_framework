@@ -12,3 +12,9 @@ sessions = {
         'end': datetime.time(15, 0)
     }
 }
+
+db_paths = {
+    'NSE': '',
+    'BSE': '',
+    'MCX': ''
+}
