@@ -8,12 +8,17 @@ from scipy.stats import norm
 
 class ChakraView:
     def __init__(self):
-        self.daily_tb = duckdb.connect(r"C:/Users/Prahlad/Desktop/DuckDB/nifty_daily.ddb", read_only=True)
+        self.daily_tb = duckdb.connect(r"C:\Users\Prahlad\Desktop\NSE_DB\nse_db.ddb", read_only=True)
         logging.basicConfig(filename=r'./ck_logger.log',
                                        level = logging.INFO,
                                        format="%(asctime)s [%(levelname)s] %(message)s")
         self.log = logging.getLogger(self.__class__.__name__)
     
+    def calculate_expiry_from_expiry_code(self, df: pd.DataFrame, expiry_code: int):
+        unique_expiries = df['expiry'].unique()
+        unique_expiries = np.sort(unique_expiries)
+        return unique_expiries[expiry_code]
+
     def get_spot_df(self, spot_name):
         df = self.daily_tb.execute(f"SELECT * FROM {spot_name}").fetch_df()
         df['date'] = pd.to_datetime(df['date']).dt.date
@@ -50,7 +55,7 @@ class ChakraView:
         print(f'Elapsed Time In Getting Tick: {end-start}')
         return tick_dict[0]
     
-    def get_all_ticks_by_timestamp(self, date: datetime.date, time: datetime.time):
+    def get_all_ticks_by_timestamp(self, underlying: str, expiry_code: int, date: datetime.date, time: datetime.time):
         start = t.time()
         date_str = date.strftime('%Y-%m-%d')
         time_str = time.strftime('%H:%M:%S')
@@ -58,11 +63,13 @@ class ChakraView:
         SELECT * FROM "{date_str}" WHERE time = '{time_str}'
         """
         df = self.daily_tb.execute(self.all_tick_query).fetchdf()
-        df_renamed = df.rename(columns={'open': 'o', 'high': 'h', 'low': 'l', 'close': 'c', 'volume': 'v'})
-        df_filtered = df_renamed[['symbol', 'o', 'h', 'l', 'c', 'v', 'oi', 'strike', 'right']].copy()
+        df_filtered = df[(df['underlying'] == underlying)]
+        expiry = self.calculate_expiry_from_expiry_code(df_filtered, expiry_code)
+        all_ticks_by_timestamp_df = df_filtered[df_filtered['expiry'] == expiry]
+        all_ticks_by_timestamp_df = all_ticks_by_timestamp_df.reset_index(drop=True)
         end = t.time()
         print(f'Elapsed Time In Getting All Ticks: {end-start}')
-        return df_filtered
+        return all_ticks_by_timestamp_df
     
     def get_strike_by_moneyness(self, underlying_price, strike_difference, moneyness, right):
         """Calculates Nearest Strike According To Moneyness And Returns An Integer Value."""
@@ -80,9 +87,9 @@ class ChakraView:
 
     # def get_all_ticks_by_symbol(self):
 
-    def find_ticker_by_moneyness(self, date, time, underlying_price, strike_difference, right, moneyness):
+    def find_ticker_by_moneyness(self, underlying: str, expiry_code: int, date: datetime.date, time: datetime.time, underlying_price, strike_difference, right, moneyness):
         start = t.time()
-        all_timestamp_df = self.get_all_ticks_by_timestamp(date, time)
+        all_timestamp_df = self.get_all_ticks_by_timestamp(underlying, expiry_code, date, time)
         strike = self.get_strike_by_moneyness(underlying_price, strike_difference, moneyness, right)
         moneyness_df = all_timestamp_df[(all_timestamp_df['right'] == right.upper()) & (all_timestamp_df['strike'] == strike)]
         if moneyness_df.empty:
@@ -93,10 +100,10 @@ class ChakraView:
         print(f'Elapsed Time In Getting Moneyness Details: {end-start}')
         return moneyness_dict[0]
 
-    def find_ticker_by_premium(self, date, time, underlying_price, right, premium_val, atm_filter=False):
+    def find_ticker_by_premium(self, underlying: str, expiry_code: int, date, time, underlying_price, right, premium_val, atm_filter=False):
         start = t.time()
 
-        all_timestamp_df = self.get_all_ticks_by_timestamp(date, time)
+        all_timestamp_df = self.get_all_ticks_by_timestamp(underlying, expiry_code, date, time)
         option_chain = all_timestamp_df[all_timestamp_df['right'] == right.upper()].copy()
 
         if option_chain.empty:
@@ -110,8 +117,8 @@ class ChakraView:
         print(f'Elapsed Time In Getting Premium Details: {end-start}')
         return min_row_dict
     
-    def find_ticker_by_delta(self, date, time, delta, right, spot):
-        tsdf = self.get_all_ticks_by_timestamp(date, time)
+    def find_ticker_by_delta(self, underlying: str, expiry_code: int, date, time, delta, right, spot):
+        tsdf = self.get_all_ticks_by_timestamp(underlying=underlying, expiry_code=expiry_code, date=date, time=time)
 
         # ---------------------------
         # Black-Scholes Pricing
@@ -250,8 +257,9 @@ class ChakraView:
 
         delta_df = compute_iv_delta(tsdf, date, spot)
         if right.upper() == 'CE':
-            call_df = delta_df[delta_df['right'] == 'CE']
+            call_df = delta_df[delta_df['right'] == 'CE'].copy()
             call_df['delta_diff'] = (call_df['delta'] - delta).abs()
+            print(f'Call DataFrame Debug: {call_df}')
             if call_df['delta_diff'].isna().all() or call_df.empty:
                 return {}
             best_row = call_df.loc[call_df['delta_diff'].idxmin()]
@@ -270,9 +278,10 @@ class ChakraView:
             self.log.info(f'SUCCESSFULLY FOUND CALL TICKER {delta_dict}')
             return delta_dict if delta_dict else {}
         elif right.upper() == 'PE':
-            put_df = delta_df[delta_df['right'] == 'PE']
+            put_df = delta_df[delta_df['right'] == 'PE'].copy()
             put_df = put_df.copy()
             put_df['delta'] = put_df['delta'].abs()
+            print(f'Put DataFrame Debug: {put_df}')
             put_df['delta_diff'] = (put_df['delta'] - delta).abs()
             if put_df['delta_diff'].isna().all() or put_df.empty:
                 return {}
