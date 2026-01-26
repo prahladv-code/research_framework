@@ -1,11 +1,14 @@
-from chakraview.pcco_opt import PCCO
+from chakraview.VWAP import VWAP
+import datetime
+import pandas as pd
+from chakraview.chakraview import ChakraView
 
-# This function will run in each process
-def run_backtest(uid):
-    # Instantiate PCCO inside the process
-    p = PCCO()
-    # Set up and run backtest
-    p.create_backtest(uid)
-    print(f"Backtest finished for {uid}")
+vwap = VWAP()
+ck = ChakraView()
+# df = vwap.get_all_ticks_by_timestamp('NIFTY', 0, datetime.date(2025, 9, 1), datetime.time(9, 15, 0), 24432.7)
+df = vwap.find_ticker_by_moneyness(underlying='NIFTY', expiry_code=1, date=datetime.date(2025, 9, 2), time=datetime.time(9, 16), underlying_price=24432.7, strike_difference=50, right='CE', moneyness= 0)
+symbol = df.get('symbol')
+signals_df = vwap.get_all_ticks_by_symbol(symbol)
+print(signals_df)
 
-run_backtest('PCCOOPT_nifty_1_0.05_False_0')
+# print(ck.get_all_ticks_by_timestamp('NIFTY', 0, datetime.date(2025, 9, 2), datetime.time(9, 16)))
