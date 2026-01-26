@@ -5,10 +5,10 @@ import datetime
 import time as t
 import logging
 from scipy.stats import norm
-
+from chakraview.config import db_paths
 class ChakraView:
     def __init__(self):
-        self.daily_tb = duckdb.connect(r"C:\Users\Prahlad\Desktop\NSE_DB\nse_db.ddb", read_only=True)
+        self.daily_tb = duckdb.connect(r"C:\Users\Prahlad\Desktop\db\historical_data.ddb", read_only=True)
         logging.basicConfig(filename=r'./ck_logger.log',
                                        level = logging.INFO,
                                        format="%(asctime)s [%(levelname)s] %(message)s")
@@ -19,8 +19,8 @@ class ChakraView:
         unique_expiries = np.sort(unique_expiries)
         return unique_expiries[expiry_code]
 
-    def get_spot_df(self, spot_name):
-        df = self.daily_tb.execute(f"SELECT * FROM {spot_name}").fetch_df()
+    def get_spot_df(self, underlying: str):
+        df = self.daily_tb.execute(f"SELECT * FROM {underlying}").fetch_df()
         df['date'] = pd.to_datetime(df['date']).dt.date
         df = df.rename(columns={    
                                     'open': 'o',
@@ -117,14 +117,15 @@ class ChakraView:
         print(f'Elapsed Time In Getting Premium Details: {end-start}')
         return min_row_dict
     
-    def find_ticker_by_delta(self, underlying: str, expiry_code: int, date, time, delta, right, spot):
+    def find_ticker_by_delta(self, underlying: str, expiry_code: int, underlying_price, date, time, delta, right):
         tsdf = self.get_all_ticks_by_timestamp(underlying=underlying, expiry_code=expiry_code, date=date, time=time)
+        print(f'Timestamp DataFrame: {tsdf}')
 
         # ---------------------------
         # Black-Scholes Pricing
         # ---------------------------
         def bs_price(opt_type, S, K, r, sigma, T):
-            if T <= 0 or sigma <= 0:
+            if T < 0 or sigma <= 0:
                 return np.nan
             
             d1 = (np.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
@@ -168,36 +169,17 @@ class ChakraView:
         # ---------------------------
         # Main Function
         # ---------------------------
-        def compute_iv_delta(tsdf: pd.DataFrame, date, spot, r: float = 0.07):
+        def compute_iv_delta(tsdf: pd.DataFrame, date, r: float = 0.07):
             # --------------------------------------------------------
             # 1. Extract Spot Price (use "NIFTY" row)
             # --------------------------------------------------------
-            spot = spot
-
-            # --------------------------------------------------------
-            # 2. Parse Expiry from symbols
-            # --------------------------------------------------------
-            def extract_expiry(sym: str):
-                # Option symbols look like: NIFTY02JAN2521600PE
-                # Extract substring at positions 5 to 12 → "02JAN25"
-                if len(sym) >= 12 and sym.startswith("NIFTY"):
-                    part = sym[5:12]  # DDMMMYY
-                    try:
-                        return datetime.datetime.strptime(part, "%d%b%y")
-                    except:
-                        return pd.NaT
-                return pd.NaT
-
-            tsdf["expiry"] = tsdf["symbol"].apply(extract_expiry)
-
-            # Convert to pandas datetime explicitly
-            tsdf["expiry"] = pd.to_datetime(tsdf["expiry"], errors="coerce")
+            spot = underlying_price
 
             # --------------------------------------------------------
             # 3. Compute time to maturity
             # --------------------------------------------------------
             today = pd.to_datetime(date)
-            tsdf["ttm"] = (tsdf["expiry"] - today).dt.days / 365.0
+            tsdf["ttm"] = (tsdf["expiry"] - today).dt.total_seconds() / (365 * 24 * 3600)
 
             # --------------------------------------------------------
             # 4. Compute IV
@@ -255,7 +237,7 @@ class ChakraView:
 
             return tsdf
 
-        delta_df = compute_iv_delta(tsdf, date, spot)
+        delta_df = compute_iv_delta(tsdf, date, r=0.07)
         if right.upper() == 'CE':
             call_df = delta_df[delta_df['right'] == 'CE'].copy()
             call_df['delta_diff'] = (call_df['delta'] - delta).abs()
@@ -303,7 +285,7 @@ class ChakraView:
             return delta_dict if delta_dict else {}
         
     
-    def find_ticker_by_strike(self, date, time, strike, right):
+    def find_ticker_by_strike(self, underlying, date, time, strike, right):
         timestampdf = self.get_all_ticks_by_timestamp(date, time)
         filtered_df = timestampdf[(timestampdf['strike'] == strike) & timestampdf['right'] == right]
         dict_to_return = {
