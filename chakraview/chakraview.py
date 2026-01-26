@@ -6,6 +6,9 @@ import time as t
 import logging
 from scipy.stats import norm
 from chakraview.config import db_paths
+import re
+
+
 class ChakraView:
     def __init__(self):
         self.daily_tb = duckdb.connect(r"C:\Users\Prahlad\Desktop\db\historical_data.ddb", read_only=True)
@@ -18,7 +21,28 @@ class ChakraView:
         unique_expiries = df['expiry'].unique()
         unique_expiries = np.sort(unique_expiries)
         return unique_expiries[expiry_code]
+    
+    def parse_option_symbol(self, symbol: str):
+        """Parses Through Option Tickers and extracts key details like Underlying, Expiry, Strike Etc."""
 
+        pattern = r"""
+            ^(?P<underlying>[A-Z0-9&\-]+?)  # underlying
+            (?P<expiry>\d{6})               # YYMMDD
+            (?P<strike>\d+(?:\.\d+)?)       # strike (int or decimal)
+            (?P<right>CE|PE)$               # option type
+        """
+
+        m = re.match(pattern, symbol, re.VERBOSE)
+        if not m:
+            raise ValueError(f"Invalid option symbol: {symbol}")
+        
+        processed_symbol = m.groupdict()
+        underlying = processed_symbol.get('underlying')
+        expiry = datetime.datetime.strptime(processed_symbol.get('expiry'), '%y%m%d')
+        strike = float(processed_symbol.get('strike'))
+        right = processed_symbol.get('right')
+        return {'underlying': underlying, 'strike': strike, 'right': right, 'expiry': expiry}
+    
     def get_spot_df(self, underlying: str):
         df = self.daily_tb.execute(f"SELECT * FROM {underlying}").fetch_df()
         df['date'] = pd.to_datetime(df['date']).dt.date
@@ -85,7 +109,23 @@ class ChakraView:
             raise ValueError("Please Check The Right Input. Valid Values are [CE, PE]")
         
 
-    # def get_all_ticks_by_symbol(self):
+    def get_all_ticks_by_symbol(self, symbol: str):
+        symbol_details = self.parse_option_symbol(symbol)
+        expiry = symbol_details.get('expiry')
+        if expiry:
+            try:
+                expiry_query = f"""
+                SELECT * FROM expiry_{expiry}
+                """
+                all_ticks_df = self.daily_tb.execute(expiry_query).fetch_df()
+                return all_ticks_df
+            except Exception as e:
+                print(f'Error In Fetching All Ticks By Symbol: {e}')
+                return
+        else:
+            print(f'Invalid Expiry Found For {symbol}')
+            return
+
 
     def find_ticker_by_moneyness(self, underlying: str, expiry_code: int, date: datetime.date, time: datetime.time, underlying_price, strike_difference, right, moneyness):
         start = t.time()

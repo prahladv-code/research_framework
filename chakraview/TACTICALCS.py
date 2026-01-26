@@ -1,4 +1,4 @@
-from chakraview import ChakraView
+from chakraview.chakraview import ChakraView
 import pandas as pd
 import numpy as np
 import logging
