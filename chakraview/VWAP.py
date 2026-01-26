@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import datetime
 import time
-from config import sessions
+from chakraview.config import sessions
 
 
 class VWAP(ChakraView):

@@ -112,10 +112,11 @@ class ChakraView:
     def get_all_ticks_by_symbol(self, symbol: str):
         symbol_details = self.parse_option_symbol(symbol)
         expiry = symbol_details.get('expiry')
+        expiry = expiry.date()
         if expiry:
             try:
                 expiry_query = f"""
-                SELECT * FROM expiry_{expiry}
+                SELECT * FROM 'expiry_{expiry}'
                 """
                 all_ticks_df = self.daily_tb.execute(expiry_query).fetch_df()
                 return all_ticks_df
