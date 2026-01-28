@@ -11,7 +11,7 @@ import re
 
 class ChakraView:
     def __init__(self):
-        self.daily_tb = duckdb.connect(r"C:\Users\Prahlad\Desktop\db\historical_data.ddb", read_only=True)
+        self.daily_tb = duckdb.connect(r"C:\Users\Prahlad\Desktop\db\historical_db.ddb", read_only=True)
         logging.basicConfig(filename=r'./ck_logger.log',
                                        level = logging.INFO,
                                        format="%(asctime)s [%(levelname)s] %(message)s")
@@ -45,15 +45,8 @@ class ChakraView:
     
     def get_spot_df(self, underlying: str):
         df = self.daily_tb.execute(f"SELECT * FROM {underlying}").fetch_df()
-        df['date'] = pd.to_datetime(df['date']).dt.date
-        df = df.rename(columns={    
-                                    'open': 'o',
-                                    'close': 'c',
-                                    'high': 'h',
-                                    'low': 'l',
-                                    'volume': 'v',
-                                    'oi': 'oi'  # optional, just keep as is
-                                })
+        df['date'] = pd.to_datetime(df['date'], format='%Y%m%d').dt.date
+        df['time'] = pd.to_datetime(df['time'], format='%H:%M').dt.time
         return df
 
     def get_df(self, dfname):

@@ -71,3 +71,16 @@ class Ddb:
                 """)
 
             self.conn.unregister("df_tmp")
+    
+    def process_underlyings(self, df: pd.DataFrame, db_name: str):
+
+        """Creates Tables In DuckDB Containing Data For All Underlyings (Spot) Data"""
+        self.conn.register('df_temp', df)
+
+        if not self._table_exists(db_name):
+            self.conn.execute(f"""CREATE TABLE "{db_name}" AS SELECT * FROM df_temp""")
+        else:
+            self.conn.execute(f"""INSERT INTO "{db_name}" SELECT * FROM df_temp""")
+        
+        self.conn.unregister('df_temp')
+    

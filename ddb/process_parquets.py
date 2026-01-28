@@ -3,13 +3,14 @@ import pandas as pd
 import os
 import time
 from multiprocessing import Pool, cpu_count
+import datetime
 
 def worker_process(args):
     fp, symbol = args
     data = DataProcessing()  # one per process
     try:
         meta = data.parse_option_symbol(symbol)
-        df = pd.read_csv(fp)
+        df = pd.read_csv(fp, header=None)
         processed_df = data.process_options_df(df, symbol, meta)
         return processed_df
     except Exception as e:

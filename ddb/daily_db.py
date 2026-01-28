@@ -31,4 +31,4 @@ if __name__ == '__main__':
         full_path = os.path.join(parent_path, parquet)
         df = process_parquets(full_path)
         date = parse_daily_filenames(parquet)
-        ingest_daily_files(r"C:\Users\Prahlad\Desktop\NSE_DB\nse_db.ddb", df, date)
+        ingest_daily_files(r"C:\Users\Prahlad\Desktop\db\historical_db.ddb", df, date)
