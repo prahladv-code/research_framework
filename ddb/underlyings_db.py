@@ -25,6 +25,13 @@ def concatenate_underlyings(parent_folder):
 
     return dict_of_underlyings
 
+def read_csv_underlyings(fp: str, filename: str):
+    df = pd.read_csv(fp)
+    filename_split = filename.split('_')
+    extraction_1 = filename_split[-1]
+    extraction_2 = extraction_1.split('.')[0]
+    return df, extraction_2
+
 def concat_all_dfs_in_dict(list_of_dfs: list):
     concatted_df = pd.concat(list_of_dfs, ignore_index=True)
     float_cols = concatted_df.select_dtypes(include=['float64']).columns
@@ -40,11 +47,17 @@ def ingest_to_ddb(dict_of_underlyings: dict):
         concatted_df = concat_all_dfs_in_dict(value)
         print(concatted_df)
         ddb.process_underlyings(concatted_df, key)
-                
+
+def directly_ingest_to_db(df, db_name: str):
+    db = Ddb(r"C:\Users\Prahlad\Desktop\db\historical_db.ddb")
+    db.process_underlyings(df, db_name)              
 
 if __name__ == '__main__':
-    dict_of_underlyings = concatenate_underlyings(r"C:\Users\Prahlad\Desktop\Truedata_samples")
-    ingest_to_ddb(dict_of_underlyings)
+
+    for file in os.listdir(r"C:\Users\Prahlad\Desktop\Truedata\NSE\IDX"):
+        filepath = os.path.join(r"C:\Users\Prahlad\Desktop\Truedata\NSE\IDX", file)
+        df, underlying = read_csv_underlyings(filepath, file)
+        directly_ingest_to_db(df, underlying)
 
 
 
