@@ -27,6 +27,20 @@ def concatenate_underlyings(parent_folder):
 
 def read_csv_underlyings(fp: str, filename: str):
     df = pd.read_csv(fp)
+    float_cols = df.select_dtypes(include=['float64']).columns
+    df[float_cols] = df[float_cols].astype('float32')
+    int_cols = df.select_dtypes(include=['int64']).columns
+    df[int_cols] = df[int_cols].astype('int32')
+    df = df.rename(
+
+        columns={'Date': 'date',
+                 'Time': 'time',
+                 'Open': 'o',
+                 'High': 'h',
+                 'Low': 'l', 
+                 'Close': 'c'}
+    )
+    
     filename_split = filename.split('_')
     extraction_1 = filename_split[-1]
     extraction_2 = extraction_1.split('.')[0]
