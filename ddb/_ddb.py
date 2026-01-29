@@ -84,3 +84,16 @@ class Ddb:
         
         self.conn.unregister('df_temp')
     
+    def process_futures(self, df: pd.DataFrame, db_name: str):
+
+        """Creates Tables In DuckDB Containing Futures Data For All Underlyings"""
+        self.conn.register('df_temp', df)
+
+        if not self._table_exists(db_name):
+            self.conn.execute(f"""CREATE TABLE "{db_name}" AS SELECT * FROM df_temp""")
+        else:
+            self.conn.execute(f"""INSERT INTO "{db_name}" SELECT * FROM df_temp""")
+        
+        self.conn.unregister('df_temp')
+        
+    
