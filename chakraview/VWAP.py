@@ -27,6 +27,17 @@ class VWAP(ChakraView):
         df['Weighted Price'] = df['Fair Price'] * df['v']
         df['VWAP'] = df['weighted Price']/df['Total Volume']
         return df
-        
+    
+    def get_relevant_options_dataframes(self, date: datetime.date, time: datetime.time, right: str, underlying_price: float):
+        strike_details = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, date, time, underlying_price, 50, right, 0)
+        symbol = strike_details.get('symbol')
+        symbol_df = self.get_all_ticks_by_symbol(symbol)
+        return symbol_df
+    
+    def yes(self):
+        pass
+    
+    
+
 
 

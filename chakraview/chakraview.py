@@ -17,11 +17,13 @@ class ChakraView:
                                        format="%(asctime)s [%(levelname)s] %(message)s")
         self.log = logging.getLogger(self.__class__.__name__)
     
+    
     def calculate_expiry_from_expiry_code(self, df: pd.DataFrame, expiry_code: int):
         unique_expiries = df['expiry'].unique()
         unique_expiries = np.sort(unique_expiries)
         return unique_expiries[expiry_code]
     
+
     def parse_option_symbol(self, symbol: str):
         """Parses Through Option Tickers and extracts key details like Underlying, Expiry, Strike Etc."""
 
@@ -43,12 +45,14 @@ class ChakraView:
         right = processed_symbol.get('right')
         return {'underlying': underlying, 'strike': strike, 'right': right, 'expiry': expiry}
     
+
     def get_spot_df(self, underlying: str):
         df = self.daily_tb.execute(f"SELECT * FROM {underlying}").fetch_df()
         df['date'] = pd.to_datetime(df['date'], format='%Y-%m-%d').dt.date
         df['time'] = pd.to_datetime(df['time'], format='%H:%M:%S').dt.time
         return df
     
+
     def get_fut_df(self, underlying: str, expiry_code: str):
 
         """Returns the continuous series for futures contracts for a particular underlying.
@@ -65,6 +69,7 @@ class ChakraView:
         df = self.daily_tb.execute(f"SELECT * FROM {dfname}").fetch_df()
         return df
 
+
     def get_fut_tick(self, underlying: str, expiry_code: str, date: datetime.date, time: datetime.time):
         db_name = underlying + '_' + expiry_code
         date_str = date.strftime('%Y-%m-%d')
@@ -77,6 +82,7 @@ class ChakraView:
         filtered_df['time'] = pd.to_datetime(filtered_df['time'], format='%H:%M:%S').dt.time
         tick_dict = filtered_df.to_dict(orient='records')
         return tick_dict[0]
+
 
     def get_tick(self, symbol: str, date: datetime.date, time: datetime.time):
         start = t.time()
