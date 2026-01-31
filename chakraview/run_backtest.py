@@ -1,15 +1,18 @@
 from chakraview.PRICEMA import PRICEMA
 import multiprocessing as mp
 
-ma_iterations = list(range(1, 100))
+# ma_iterations = list(range(1, 100))
+ma_iterations = [33, 63, 93]
+underlyings = ['GOLD', 'CRUDEOIL'] # ['NIFTY', 'BANKNIFTY', 'MIDCPNIFTY', 'FINNIFTY']
 timeframe_iterations = [25]
 # multiplier_iterations = [1, 1.5, 2, 2.5, 3, 3.5, 4]
 uids = []
 for ma in ma_iterations:
     for timeframe in timeframe_iterations:
             # You can use a static method or small helper
-        uid = f"PRICEMA_niftyfut_{ma}_{timeframe}_False"
-        uids.append(uid)
+        for underlying in underlyings:
+            uid = f"PRICEMA_{underlying}_0_{ma}_{timeframe}_False"
+            uids.append(uid)
 
 def run_backtest(uid):
     backtest = PRICEMA()         # instantiate here (not outside)
