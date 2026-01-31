@@ -19,8 +19,38 @@ if REPO_ROOT not in sys.path:
 
 # Now you can safely import your analysis module
 from analysis.calculate_metrics import CalculateMetrics
+from auth import verify_user
 calc = CalculateMetrics()
 pio.renderers.default = "browser"
+
+# ---------- AUTH SESSION STATE ----------
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+    st.session_state.username = None
+
+
+def login_page():
+    st.set_page_config(
+        page_title="108 Capital Login",
+        page_icon="🔐",
+        layout="centered"
+    )
+
+    st.title("🔐 108 Capital Dashboard Login")
+
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+        if verify_user(username.strip(), password.strip()):
+            st.session_state.authenticated = True
+            st.session_state.username = username
+            st.success("Login successful")
+            st.rerun()
+        else:
+            st.error("Invalid username or password")
+
+
 
 def homepage():
     st.set_page_config(
@@ -36,6 +66,15 @@ def homepage():
     st.write("Welcome to the Research Dashboard.")
     st.logo('./frontend/108 LOGO BLACK.png', size='large')
     st.sidebar.title("Strategies Toggle")
+
+    st.sidebar.markdown("---")
+    st.sidebar.write(f"👤 Logged in as **{st.session_state.username}**")
+
+    if st.sidebar.button("Logout"):
+        st.session_state.authenticated = False
+        st.session_state.username = None
+        st.rerun()
+
     st.divider()
 
 
@@ -509,6 +548,11 @@ def strategy_driver():
 # C:/Users/admin/VSCode/tradesheets/pcco/
 
 def main():
+    
+    if not st.session_state.authenticated:
+        login_page()
+        return  # ⛔ stop execution here
+    
     homepage()
     section = st.sidebar.radio("Select section:", ["Strats", "Downloads", "Portfolios"])
     if section == "Downloads":
