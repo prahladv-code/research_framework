@@ -5,7 +5,7 @@ BASE_DIR = Path(__file__).resolve().parent
 USERS_FILE = BASE_DIR / "users.json"
 
 def load_users():
-    with open('./users.json', 'r') as f:
+    with open(USERS_FILE, 'r') as f:
         j = json.load(f)
     return j
 
