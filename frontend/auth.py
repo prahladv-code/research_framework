@@ -1,4 +1,8 @@
 import json
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+USERS_FILE = BASE_DIR / "users.json"
 
 def load_users():
     with open('./users.json', 'r') as f:
