@@ -7,7 +7,7 @@ import logging
 from scipy.stats import norm
 from chakraview.config import db_paths
 import re
-
+from chakraview.config import continuous_codes
 
 class ChakraView:
     def __init__(self):
@@ -56,9 +56,10 @@ class ChakraView:
     def get_fut_df(self, underlying: str, expiry_code: str):
 
         """Returns the continuous series for futures contracts for a particular underlying.
-           Examples of the expiry_code for continuous futures are: I, II, III.
+           Examples of the expiry_code for continuous futures are: 0, 1, 2.
         """
-        db_name = underlying + '_' + expiry_code
+        fut_series = continuous_codes.get(expiry_code)
+        db_name = underlying + '_' + fut_series
         df = self.daily_tb.execute(f"SELECT * FROM {db_name}").fetch_df()
         df['date'] = pd.to_datetime(df['date'], format='%Y-%m-%d').dt.date
         df['time'] = pd.to_datetime(df['time'], format='%H:%M:%S').dt.time
@@ -70,18 +71,53 @@ class ChakraView:
         return df
 
 
-    def get_fut_tick(self, underlying: str, expiry_code: str, date: datetime.date, time: datetime.time):
-        db_name = underlying + '_' + expiry_code
+    def get_fut_tick(
+                        self,
+                        underlying: str,
+                        expiry_code: str,
+                        date: datetime.date,
+                        time: datetime.time
+                    ):
+        fut_series = continuous_codes.get(expiry_code)
+        db_name = underlying + '_' + fut_series
+
         date_str = date.strftime('%Y-%m-%d')
         time_str = time.strftime('%H:%M:%S')
-        tick_query = f"""
-        SELECT * FROM "{db_name}" WHERE time = '{time_str}' AND date = '{date_str}'
+
+        # 1️⃣ exact match first
+        exact_query = f"""
+            SELECT *
+            FROM "{db_name}"
+            WHERE date = '{date_str}'
+            AND time = '{time_str}'
+            LIMIT 1
         """
-        filtered_df = self.daily_tb.execute(tick_query).fetch_df()
-        filtered_df['date'] = pd.to_datetime(filtered_df['date'], format = '%Y-%m-%d').dt.date
-        filtered_df['time'] = pd.to_datetime(filtered_df['time'], format='%H:%M:%S').dt.time
-        tick_dict = filtered_df.to_dict(orient='records')
-        return tick_dict[0]
+
+        try:
+            df = self.daily_tb.execute(exact_query).fetch_df()
+            if not df.empty:
+                return df.iloc[0].to_dict()
+
+            # 2️⃣ fallback: nearest tick BEFORE timestamp (no lookahead)
+            fallback_query = f"""
+                                SELECT *
+                                FROM "{db_name}"
+                                WHERE date = '{date_str}'
+                                AND time < '{time_str}'
+                                ORDER BY time DESC
+                                LIMIT 3
+                            """
+
+            df = self.daily_tb.execute(fallback_query).fetch_df()
+            if not df.empty:
+                return df.iloc[0].to_dict()
+
+            return {}
+
+        except Exception as e:
+            print(f'No Data Returned For {date_str} {time_str} | {e}')
+            return {}
+
 
 
     def get_tick(self, symbol: str, date: datetime.date, time: datetime.time):
