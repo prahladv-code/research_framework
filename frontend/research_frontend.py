@@ -161,9 +161,9 @@ def downloads_section():
         elif strat == "PRICEMA":
             folder_path = './tradesheets/pricema/'
         elif strat == "IVIX":
-            folder_path = './tradesheets/ivix'
+            folder_path = './tradesheets/ivix/'
         elif strat == 'PRICEMACLOSEFILTER':
-            folder_path = './tradesheets/pricemaclosefilter'
+            folder_path = './tradesheets/pricemaclosefilter/'
         
         
         # Check if folder exists
@@ -393,7 +393,7 @@ def portfolios_driver():
         'PRICEMA_ATR': './tradesheets/pricema_atr/',
         'PRICEMA_TRAIL': './tradesheets/pricema_atr_exit/',
         'IVIX': './tradesheets/ivix/',
-        'PRICEMACLOSEFILTER': './tradesheets/pricemaclosefilter'
+        'PRICEMACLOSEFILTER': './tradesheets/pricemaclosefilter/'
     }
     strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER']
     
@@ -490,7 +490,7 @@ def strategy_driver():
         'PRICEMA_ATR': './tradesheets/pricema_atr/',
         'PRICEMA_TRAIL': './tradesheets/pricema_atr_exit/',
         'IVIX': './tradesheets/ivix/',
-        'PRICEMACLOSEFILTER': './tradesheets/pricemaclosefilter'
+        'PRICEMACLOSEFILTER': './tradesheets/pricemaclosefilter/'
     }
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
     slippage_pct = st.number_input('Slippage Percentage', 0.0, 0.05, key = 'slippage')
