@@ -76,7 +76,6 @@ class CalculateMetrics:
 
         # Add columns
         df['P/L'] = np.nan
-        df['MTM P/L'] = np.nan
 
         # Initialize trackers
         entry_cv = None
@@ -102,20 +101,6 @@ class CalculateMetrics:
                         df.at[i, 'P/L'] = entry_cv - cv  # short gains when cv drops
                     entry_cv = None
                     entry_trade = None
-
-            # ---- MTM TRADES ----
-            else:
-                if trade in ['MTM_BUY', 'MTM_SHORT']:
-                    mtm_entry_cv = cv
-                    mtm_entry_trade = trade
-
-                elif trade in ['MTM_SELL', 'MTM_COVER'] and mtm_entry_trade is not None:
-                    if mtm_entry_trade == 'MTM_BUY' and trade == 'MTM_SELL':
-                        df.at[i, 'MTM P/L'] = cv - mtm_entry_cv
-                    elif mtm_entry_trade == 'MTM_SHORT' and trade == 'MTM_COVER':
-                        df.at[i, 'MTM P/L'] = mtm_entry_cv - cv
-                    mtm_entry_cv = None
-                    mtm_entry_trade = None
 
         return df
 
