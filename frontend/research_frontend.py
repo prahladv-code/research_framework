@@ -151,7 +151,7 @@ def downloads_section():
     if st.sidebar.checkbox("Go to Downloads"):
         strat = st.selectbox(
             "Select a Strat to Download Tradebooks:",
-            ["PCCO_SPOT", "PCCO_OPT", "PRICEMA"]
+            ["PCCO_SPOT", "PCCO_OPT", "PRICEMA", "IVIX", "PRICEMACLOSEFILTER"]
         )
 
         if strat == "PCCO_SPOT":
@@ -160,6 +160,11 @@ def downloads_section():
             folder_path = './tradesheets/pcco_opt/'
         elif strat == "PRICEMA":
             folder_path = './tradesheets/pricema/'
+        elif strat == "IVIX":
+            folder_path = './tradesheets/ivix'
+        elif strat == 'PRICEMACLOSEFILTER':
+            folder_path = './tradesheets/pricemaclosefilter'
+        
         
         # Check if folder exists
         if os.path.exists(folder_path):
@@ -387,9 +392,10 @@ def portfolios_driver():
         'PRICEMA': './tradesheets/pricema/',
         'PRICEMA_ATR': './tradesheets/pricema_atr/',
         'PRICEMA_TRAIL': './tradesheets/pricema_atr_exit/',
-        'IVIX': './tradesheets/ivix/'
+        'IVIX': './tradesheets/ivix/',
+        'PRICEMACLOSEFILTER': './tradesheets/pricemaclosefilter'
     }
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX']
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER']
     
     # Select strategies
     strats = st.multiselect('Strategies', strategies)
@@ -475,7 +481,7 @@ def portfolios_driver():
         
 
 def strategy_driver():
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX']  # both options in the same radio
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER']  # both options in the same radio
     selected_strat = st.sidebar.radio('Select A Strategy', strategies, key='pcco_strategy')
     folder_paths = {
         'PCCO_SPOT': './tradesheets/pcco/',
@@ -483,7 +489,8 @@ def strategy_driver():
         'PRICEMA': './tradesheets/pricema/',
         'PRICEMA_ATR': './tradesheets/pricema_atr/',
         'PRICEMA_TRAIL': './tradesheets/pricema_atr_exit/',
-        'IVIX': './tradesheets/ivix/'
+        'IVIX': './tradesheets/ivix/',
+        'PRICEMACLOSEFILTER': './tradesheets/pricemaclosefilter'
     }
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
     slippage_pct = st.number_input('Slippage Percentage', 0.0, 0.05, key = 'slippage')
@@ -541,6 +548,16 @@ def strategy_driver():
         display_correlation_matrix(folder_path)
         calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
         calculate_pl_distribution(folder_path, initial_margin)
+    
+    elif selected_strat == 'PRICEMACLOSEFILTER':
+        folder_path = folder_paths.get(selected_strat)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
+        calculate_metrics(folder_path, initial_margin, slippage_pct)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
+        display_correlation_matrix(folder_path)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_pl_distribution(folder_path, initial_margin)
+
 
 
 
