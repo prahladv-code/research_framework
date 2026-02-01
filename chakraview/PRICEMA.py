@@ -10,8 +10,8 @@ import time
 class PRICEMA:
     def __init__(self):
         self.ck = ChakraView()
-        self.start_time = sessions.get('commodities').get('start')
-        self.end_time = sessions.get('commodities').get('end')
+        self.start_time = sessions.get('nifty_fut').get('start')
+        self.end_time = sessions.get('nifty_fut').get('end')
         self.previous_date = None
         self.metrics = CalculateMetrics()
         self.continuous_codes = continuous_codes

@@ -3,7 +3,7 @@ import multiprocessing as mp
 
 # ma_iterations = list(range(1, 100))
 ma_iterations = [33, 63, 93]
-underlyings = ['GOLD', 'CRUDEOIL'] # ['NIFTY', 'BANKNIFTY', 'MIDCPNIFTY', 'FINNIFTY']
+underlyings = ['NIFTY', 'BANKNIFTY', 'MIDCPNIFTY', 'FINNIFTY'] #['GOLD', 'CRUDEOIL'] 
 timeframe_iterations = [25]
 # multiplier_iterations = [1, 1.5, 2, 2.5, 3, 3.5, 4]
 uids = []
