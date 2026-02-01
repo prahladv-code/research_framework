@@ -1,4 +1,4 @@
-from chakraview.PRICEMA import PRICEMA
+from chakraview.PRICEMA_CLOSE_FILTER import PRICEMA
 import multiprocessing as mp
 
 # ma_iterations = list(range(1, 100))
@@ -11,7 +11,7 @@ for ma in ma_iterations:
     for timeframe in timeframe_iterations:
             # You can use a static method or small helper
         for underlying in underlyings:
-            uid = f"PRICEMA_{underlying}_0_{ma}_{timeframe}_False"
+            uid = f"PRICEMACLOSEFILTER_{underlying}_0_{ma}_{timeframe}_False"
             uids.append(uid)
 
 def run_backtest(uid):
