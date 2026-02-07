@@ -36,6 +36,9 @@ class VWAP(ChakraView):
         symbol_df = self.get_all_ticks_by_symbol(symbol)
         return symbol_df
     
+    def create_itertuples(self, db):
+        return db.itertuples(index = False)
+
     def calculate_chandelier_exit(self, db):
         """
         Calculates chandelier long and short trailing stop based on ATR
@@ -144,10 +147,8 @@ class VWAP(ChakraView):
         df['trend'] = trend
         
         return df
-            
+
+    def gen_signals(self):
+        pass
 
     
-    
-
-
-
