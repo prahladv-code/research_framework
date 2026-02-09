@@ -12,7 +12,7 @@ def concatenate_underlyings(parent_folder):
             for file in os.listdir(child_path):
                 full_path = os.path.join(child_path, file)
                 underlying_name = file.split('.csv')[0]
-                df = pd.read_csv(full_path, header=None)
+                df = pd.read_csv(full_path)
                 
                 if underlying_name in dict_of_underlyings:
                     dict_of_underlyings[underlying_name].append(df)
@@ -40,7 +40,6 @@ def read_csv_underlyings(fp: str, filename: str):
                  'Low': 'l', 
                  'Close': 'c'}
     )
-    
     filename_split = filename.split('_')
     extraction_1 = filename_split[-1]
     extraction_2 = extraction_1.split('.')[0]
@@ -68,8 +67,8 @@ def directly_ingest_to_db(df, db_name: str):
 
 if __name__ == '__main__':
 
-    for file in os.listdir(r"C:\Users\Prahlad\Desktop\Truedata\NSE\IDX"):
-        filepath = os.path.join(r"C:\Users\Prahlad\Desktop\Truedata\NSE\IDX", file)
+    for file in os.listdir(r"C:\Users\Prahlad\Desktop\zerodha_backfills\SPOT"):
+        filepath = os.path.join(r"C:\Users\Prahlad\Desktop\zerodha_backfills\SPOT", file)
         df, underlying = read_csv_underlyings(filepath, file)
         directly_ingest_to_db(df, underlying)
 

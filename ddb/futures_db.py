@@ -74,8 +74,8 @@ if __name__ == '__main__':
 
     indices = ['NIFTY_I', 'BANKNIFTY_I', 'FINNIFTY_I', 'MIDCPNIFTY_I', 'GOLD_I', 'CRUDEOIL_I']
 
-    for file in os.listdir(r"C:\Users\Prahlad\Desktop\Truedata\MCX\FUT"):
-        filepath = os.path.join(r"C:\Users\Prahlad\Desktop\Truedata\MCX\FUT", file)
+    for file in os.listdir(r"C:\Users\Prahlad\Desktop\zerodha_backfills\FUT"):
+        filepath = os.path.join(r"C:\Users\Prahlad\Desktop\zerodha_backfills\FUT", file)
         if any(idx in file for idx in indices):
             print(file)
             df, underlying = read_csv_futures(filepath, file)

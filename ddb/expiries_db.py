@@ -17,7 +17,7 @@ def process_expiry_tables(df, db_path):
     db.process_expiry_tables(df)
 
 if __name__ == '__main__':
-    parent_path = r"C:\Users\Prahlad\Desktop\NSE_TRUEDATA_SAMPLES"
+    parent_path = r"C:\Users\Prahlad\Desktop\zerodha_backfills\OPT"
     db_path = r"C:\Users\Prahlad\Desktop\db\historical_db.ddb"
     for file in os.listdir(parent_path):
         full_path = os.path.join(parent_path, file)

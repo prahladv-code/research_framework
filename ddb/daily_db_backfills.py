@@ -27,9 +27,11 @@ def ingest_daily_files(db_path: str, df:pd.DataFrame, db_name: str):
 
 if __name__ == '__main__':
     parent_path = r"C:\Users\Prahlad\Desktop\zerodha_backfills\OPT"
+    today = datetime.datetime.today().date()
     for parquet in os.listdir(parent_path):
         full_path = os.path.join(parent_path, parquet)
         df = process_parquets(full_path)
         date = parse_daily_filenames(parquet)
-        # print(df)
-        ingest_daily_files(r"C:\Users\Prahlad\Desktop\db\historical_db.ddb", df, date)
+        if date == today:
+            print(df)
+            ingest_daily_files(r"C:\Users\Prahlad\Desktop\db\historical_db.ddb", df, date)
