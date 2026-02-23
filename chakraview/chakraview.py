@@ -19,8 +19,17 @@ class ChakraView:
     
     
     def calculate_expiry_from_expiry_code(self, df: pd.DataFrame, expiry_code: int):
-        unique_expiries = df['expiry'].unique()
-        unique_expiries = np.sort(unique_expiries)
+        if df.empty:
+            return None
+
+        unique_expiries = np.sort(df['expiry'].dropna().unique())
+
+        if len(unique_expiries) == 0:
+            return None
+
+        if expiry_code >= len(unique_expiries):
+            return None
+
         return unique_expiries[expiry_code]
     
 
@@ -29,7 +38,7 @@ class ChakraView:
 
         pattern = r"""
             ^(?P<underlying>[A-Z0-9&\-]+?)  # underlying
-            (?P<expiry>\d{6})               # YYMMDD
+            (?P<expiry>\d{8})               # YYMMDD
             (?P<strike>\d+(?:\.\d+)?)       # strike (int or decimal)
             (?P<right>CE|PE)$               # option type
         """
@@ -39,8 +48,9 @@ class ChakraView:
             raise ValueError(f"Invalid option symbol: {symbol}")
         
         processed_symbol = m.groupdict()
+        print(f'Processed Symbol: {processed_symbol}')
         underlying = processed_symbol.get('underlying')
-        expiry = datetime.datetime.strptime(processed_symbol.get('expiry'), '%y%m%d')
+        expiry = datetime.datetime.strptime(processed_symbol.get('expiry'), '%Y%m%d')
         strike = float(processed_symbol.get('strike'))
         right = processed_symbol.get('right')
         return {'underlying': underlying, 'strike': strike, 'right': right, 'expiry': expiry}
@@ -146,9 +156,18 @@ class ChakraView:
         self.all_tick_query = f"""
         SELECT * FROM "{date_str}" WHERE time = '{time_str}'
         """
-        df = self.daily_tb.execute(self.all_tick_query).fetchdf()
-        df_filtered = df[(df['underlying'] == underlying)]
-        expiry = self.calculate_expiry_from_expiry_code(df_filtered, expiry_code)
+        try:
+            df = self.daily_tb.execute(self.all_tick_query).fetchdf()
+            df_filtered = df[(df['underlying'] == underlying)]
+            expiry = self.calculate_expiry_from_expiry_code(df_filtered, expiry_code)
+        except Exception as e:
+            print(f'Error In Fetching Data For {date}: {e}')
+            return pd.DataFrame()
+
+        if expiry is None:
+            self.log.error(f"No expiry found | underlying={underlying} | date={date} | time={time} | expiry_code={expiry_code}")
+            return pd.DataFrame()   # safe empty return
+
         all_ticks_by_timestamp_df = df_filtered[df_filtered['expiry'] == expiry]
         all_ticks_by_timestamp_df = all_ticks_by_timestamp_df.reset_index(drop=True)
         end = t.time()
@@ -179,7 +198,8 @@ class ChakraView:
                 SELECT * FROM 'expiry_{expiry}'
                 """
                 all_ticks_df = self.daily_tb.execute(expiry_query).fetch_df()
-                return all_ticks_df
+                symbol_df = all_ticks_df[all_ticks_df['symbol'] == symbol]
+                return symbol_df
             except Exception as e:
                 print(f'Error In Fetching All Ticks By Symbol: {e}')
                 return
@@ -191,6 +211,9 @@ class ChakraView:
     def find_ticker_by_moneyness(self, underlying: str, expiry_code: int, date: datetime.date, time: datetime.time, underlying_price, strike_difference, right, moneyness):
         start = t.time()
         all_timestamp_df = self.get_all_ticks_by_timestamp(underlying, expiry_code, date, time)
+        if all_timestamp_df.empty:
+            self.log.error(f"Empty timestamp DF | {date} {time}")
+            return {}
         strike = self.get_strike_by_moneyness(underlying_price, strike_difference, moneyness, right)
         moneyness_df = all_timestamp_df[(all_timestamp_df['right'] == right.upper()) & (all_timestamp_df['strike'] == strike)]
         if moneyness_df.empty:
