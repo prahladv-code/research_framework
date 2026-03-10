@@ -2,7 +2,7 @@ from _ddb import Ddb
 import pandas as pd
 import os
 import datetime
-
+from logger import logger
 
 def read_parquets(fp: str):
     df = pd.read_parquet(fp)
@@ -17,10 +17,11 @@ def process_expiry_tables(df, db_path):
     db.process_expiry_tables(df)
 
 if __name__ == '__main__':
-    parent_path = r"C:\Users\Prahlad\Desktop\zerodha_backfills\OPT"
-    db_path = r"C:\Users\Prahlad\Desktop\db\historical_db.ddb"
+    parent_path = r"C:\Users\Admin\Desktop\processed_parquets"
+    db_path = r"C:\Users\Admin\Desktop\db\historical_db.ddb"
     for file in os.listdir(parent_path):
         full_path = os.path.join(parent_path, file)
         df = read_parquets(full_path)
         process_expiry_tables(df, db_path)
+        logger.info(f'Processed Parquet Successfully: {file}')
     
