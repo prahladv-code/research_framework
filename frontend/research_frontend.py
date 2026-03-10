@@ -163,7 +163,7 @@ def downloads_section():
         elif strat == "IVIX":
             folder_path = './tradesheets/ivix/'
         elif strat == 'PRICEMACLOSEFILTER':
-            folder_path = './tradesheets/pricemaclosefilter/',
+            folder_path = './tradesheets/pricemaclosefilter/'
         elif strat == 'VWAP':
             folder_path = './tradesheets/vwap/'
         
