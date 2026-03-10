@@ -55,20 +55,20 @@ def concat_all_dfs_in_dict(list_of_dfs: list):
     return concatted_df
 
 def ingest_to_ddb(dict_of_underlyings: dict):
-    ddb = Ddb(r"C:\Users\Prahlad\Desktop\db\historical_db.ddb")
+    ddb = Ddb(r"C:\Users\Admin\Desktop\db\historical_db.ddb")
     for key, value in dict_of_underlyings.items():
         concatted_df = concat_all_dfs_in_dict(value)
         print(concatted_df)
         ddb.process_underlyings(concatted_df, key)
 
 def directly_ingest_to_db(df, db_name: str):
-    db = Ddb(r"C:\Users\Prahlad\Desktop\db\historical_db.ddb")
+    db = Ddb(r"C:\Users\Admin\Desktop\db\historical_db.ddb")
     db.process_underlyings(df, db_name)              
 
 if __name__ == '__main__':
 
-    for file in os.listdir(r"C:\Users\Prahlad\Desktop\zerodha_backfills\SPOT"):
-        filepath = os.path.join(r"C:\Users\Prahlad\Desktop\zerodha_backfills\SPOT", file)
+    for file in os.listdir(r"C:\Users\Admin\Desktop\Truedata\NSE\IDX"):
+        filepath = os.path.join(r"C:\Users\Admin\Desktop\Truedata\NSE\IDX", file)
         df, underlying = read_csv_underlyings(filepath, file)
         directly_ingest_to_db(df, underlying)
 

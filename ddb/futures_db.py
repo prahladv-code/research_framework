@@ -3,6 +3,7 @@ import pandas as pd
 import datetime
 import time
 import os
+from logger import logger
 
 def concatenate_underlyings(parent_folder):
     dict_of_underlyings = {}
@@ -47,7 +48,7 @@ def read_csv_futures(fp: str, filename: str):
     underlying = filename_split[-2]
     extraction_1 = underlying + '_' + series
     extraction_2 = extraction_1.split('.')[0]
-    print(f'Extraction ID: {extraction_2}')
+    logger.info(f'Extraction ID: {extraction_2}')
     return df, extraction_2
 
 def concat_all_dfs_in_dict(list_of_dfs: list):
@@ -60,26 +61,27 @@ def concat_all_dfs_in_dict(list_of_dfs: list):
     return concatted_df
 
 def ingest_to_ddb(dict_of_underlyings: dict):
-    ddb = Ddb(r"C:\Users\Prahlad\Desktop\db\historical_db.ddb")
+    ddb = Ddb(r"C:\Users\Admin\Desktop\db\historical_db.ddb")
     for key, value in dict_of_underlyings.items():
         concatted_df = concat_all_dfs_in_dict(value)
         print(concatted_df)
         ddb.process_underlyings(concatted_df, key)
 
 def directly_ingest_to_db(df, db_name: str):
-    db = Ddb(r"C:\Users\Prahlad\Desktop\db\historical_db.ddb")
+    db = Ddb(r"C:\Users\Admin\Desktop\db\historical_db.ddb")
     db.process_underlyings(df, db_name)              
 
 if __name__ == '__main__':
 
-    indices = ['NIFTY_I', 'BANKNIFTY_I', 'FINNIFTY_I', 'MIDCPNIFTY_I', 'GOLD_I', 'CRUDEOIL_I']
+    indices = ['NIFTY_I', 'BANKNIFTY_I', 'FINNIFTY_I', 'MIDCPNIFTY_I', 'GOLD_I', 'CRUDEOIL_I', 'SILVER_I', 'SENSEX_I', 'BANKEX_I']
 
-    for file in os.listdir(r"C:\Users\Prahlad\Desktop\zerodha_backfills\FUT"):
-        filepath = os.path.join(r"C:\Users\Prahlad\Desktop\zerodha_backfills\FUT", file)
+    for file in os.listdir(r"C:\Users\Admin\Desktop\Truedata\NSE\FUT"):
+        filepath = os.path.join(r"C:\Users\Admin\Desktop\Truedata\NSE\FUT", file)
         if any(idx in file for idx in indices):
-            print(file)
             df, underlying = read_csv_futures(filepath, file)
+            logger.info(f'Processing Future: {underlying}')
             directly_ingest_to_db(df, underlying)
+            logger.info(f'Successfully added fut series: {underlying}')
 
 
 
