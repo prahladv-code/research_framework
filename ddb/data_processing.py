@@ -25,7 +25,7 @@ class DataProcessing:
         # 2️⃣ Fallback: stock options
         pattern = r"""
             ^(?P<underlying>[A-Z0-9&\-]+?)  # underlying
-            (?P<expiry>\d{6})               # YYMMDD
+            (?P<expiry>\d{8})               # YYYYMMDD
             (?P<strike>\d+(?:\.\d+)?)       # strike (int or decimal)
             (?P<right>CE|PE)$               # option type
         """
@@ -57,6 +57,32 @@ class DataProcessing:
         processed_df['expiry'] = expiry
         processed_df['date'] = pd.to_datetime(processed_df['date'], format='%Y%m%d', errors='coerce').dt.date
         processed_df['time'] = pd.to_datetime(processed_df['time'], format = '%H:%M', errors='coerce').dt.time
+        
+        return processed_df
+    
+    def process_options_df_new(self, df):
+        right_condition_call = df['OptionType'] == 'call'
+        right_condition_put = df['OptionType'] == 'put'
+        df['OptionType'] = np.where(right_condition_call, 'CE', np.where(right_condition_put, 'PE', None))
+        processed_df = df.rename(
+            columns = {
+                "Date": "date",
+                "Time": "time",
+                "Open": "o",
+                "High": "h",
+                "Low": "l",
+                "Close": "c",
+                "Volume": "v",
+                "OI": "oi",
+                "Expiry": "expiry",
+                "OptionType": "right",
+                "Strike": "strike",
+                "Symbol": "symbol"
+            }
+        )
+        processed_df['date'] = pd.to_datetime(processed_df['date'], format='%Y-%m-%d', errors='coerce').dt.date
+        processed_df['time'] = pd.to_datetime(processed_df['time'], format = '%H:%M:%S', errors='coerce').dt.time
+        processed_df['expiry'] = pd.to_datetime(processed_df['expiry'], format='%Y-%m-%d', errors='coerce').dt.date
         
         return processed_df
 

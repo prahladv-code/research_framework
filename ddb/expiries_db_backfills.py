@@ -2,7 +2,7 @@ from _ddb import Ddb
 import pandas as pd
 import os
 import datetime
-
+from logger import logger
 
 def read_parquets(fp: str):
     df = pd.read_parquet(fp)
