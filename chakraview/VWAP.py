@@ -13,7 +13,6 @@ class VWAP(ChakraView):
         self.exit_condition_time = datetime.time(15, 27, 0)
         self.signal_list = []
         self.calc = calculate_metrics.CalculateMetrics()
-        self.reset_all_variables()
         self.new_day_call = None
         self.new_day_put = None
     
@@ -440,7 +439,7 @@ class VWAP(ChakraView):
         signals = self.gen_signals()
         signals_df = pd.DataFrame(signals)
         tradesheet = self.calc.calculate_pl_in_opt_tradesheet(signals_df)
-        tradesheet.to_parquet(f"C:/Users/Prahlad/108_research/tradesheets/vwap/{uid}.parquet")
+        tradesheet.to_parquet(f"C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/vwap/{uid}.parquet")
         print('###########################BACKTEST COMPPLETE################################')
         
 

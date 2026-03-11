@@ -11,7 +11,7 @@ from chakraview.config import continuous_codes
 
 class ChakraView:
     def __init__(self):
-        self.daily_tb = duckdb.connect(r"C:\Users\Prahlad\Desktop\db\historical_db.ddb", read_only=True)
+        self.daily_tb = duckdb.connect(r"C:\Users\Admin\Desktop\db\historical_db.ddb", read_only=True)
         logging.basicConfig(filename=r'./ck_logger.log',
                                        level = logging.INFO,
                                        format="%(asctime)s [%(levelname)s] %(message)s")
