@@ -198,83 +198,85 @@ class VWAP(ChakraView):
                         self.reset_all_variables_call()
 
                     if self.entry_condition_time <= vwap_row.time < self.exit_condition_time:
-                        if vwap_row.c > vwap_row.vwap and self.in_position_call == -1:
-                            current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
-                            print(f'VWAP CALL SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
-                            if self.entry_symbol_call:
-                                exit_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
-                                exit_tick = exit_tick.get('c') if exit_tick else np.nan
-                                exit_signal = self.place_trade(current_timestamp, self.entry_symbol_call, exit_tick, 65, 65*exit_tick, 'COVER', 'EXIT_SHORT')
-                                self.signal_list.append(exit_signal)
-                                self.in_position_call = 0
-                            else:
-                                print(f'Call Symbol Is Empty. Skipping.')
-                                self.in_position_call = 0
-                        
-                            print(f'VWAP CALL LONG ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
-                            self.entry_symbol_call = vwap_row.symbol
-                            if self.entry_symbol_call:
-                                entry_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
-                                entry_tick = entry_tick.get('c') if entry_tick else np.nan
-                                entry_signal = self.place_trade(current_timestamp, self.entry_symbol_call, entry_tick, 65, 65*entry_tick, "BUY", "ENTRY_LONG")
-                                self.in_position_call = 1
-                                self.signal_list.append(entry_signal)
-                            else:
-                                print(f'Call Symbol Is Empty. Skipping.')
-                                self.in_position_call = 0
+                        if vwap_row.c > vwap_row.vwap:
+                            if self.in_position_call == -1:
+                                current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                print(f'VWAP CALL SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
+                                if self.entry_symbol_call:
+                                    exit_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
+                                    exit_tick = exit_tick.get('c') if exit_tick else np.nan
+                                    exit_signal = self.place_trade(current_timestamp, self.entry_symbol_call, exit_tick, 65, 65*exit_tick, 'COVER', 'EXIT_SHORT')
+                                    self.signal_list.append(exit_signal)
+                                    self.in_position_call = 0
+                                else:
+                                    print(f'Call Symbol Is Empty. Skipping.')
+                                    self.in_position_call = 0
+                            
+                                print(f'VWAP CALL LONG ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
+                                self.entry_symbol_call = vwap_row.symbol
+                                if self.entry_symbol_call:
+                                    entry_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
+                                    entry_tick = entry_tick.get('c') if entry_tick else np.nan
+                                    entry_signal = self.place_trade(current_timestamp, self.entry_symbol_call, entry_tick, 65, 65*entry_tick, "BUY", "ENTRY_LONG")
+                                    self.in_position_call = 1
+                                    self.signal_list.append(entry_signal)
+                                else:
+                                    print(f'Call Symbol Is Empty. Skipping.')
+                                    self.in_position_call = 0
 
-                        elif vwap_row.c > vwap_row.vwap and self.in_position_call == 0:
-                            print(f'VWAP CALL LONG ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
-                            current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
-                            self.entry_symbol_call = vwap_row.symbol
-                            if self.entry_symbol_call:
-                                entry_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
-                                entry_tick = entry_tick.get('c') if entry_tick else np.nan
-                                entry_signal = self.place_trade(current_timestamp, self.entry_symbol_call, entry_tick, 65, 65*entry_tick, "BUY", "ENTRY_LONG")
-                                self.in_position_call = 1
-                                self.signal_list.append(entry_signal)
-                            else:
-                                print(f'Call Symbol Is Empty. Skipping.')
-                                self.in_position_call = 0
+                            elif self.in_position_call == 0:
+                                print(f'VWAP CALL LONG ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
+                                current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                self.entry_symbol_call = vwap_row.symbol
+                                if self.entry_symbol_call:
+                                    entry_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
+                                    entry_tick = entry_tick.get('c') if entry_tick else np.nan
+                                    entry_signal = self.place_trade(current_timestamp, self.entry_symbol_call, entry_tick, 65, 65*entry_tick, "BUY", "ENTRY_LONG")
+                                    self.in_position_call = 1
+                                    self.signal_list.append(entry_signal)
+                                else:
+                                    print(f'Call Symbol Is Empty. Skipping.')
+                                    self.in_position_call = 0
                         
-                        if vwap_row.c < vwap_row.vwap and self.in_position_call == 1:
-                            current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
-                            print(f'VWAP CALL LONG EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
-                            if self.entry_symbol_call:
-                                exit_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
-                                exit_tick = exit_tick.get('c') if exit_tick else np.nan
-                                exit_signal = self.place_trade(current_timestamp, self.entry_symbol_call, exit_tick, 65, 65*exit_tick, 'SELL', 'EXIT_LONG')
-                                self.signal_list.append(exit_signal)
-                                self.in_position_call = 0
-                            else:
-                                print(f'Call Symbol Is Empty. Skipping.')
-                                self.in_position_call = 0
-                        
-                            print(f'VWAP CALL SHORT ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
-                            self.entry_symbol_call = vwap_row.symbol
-                            if self.entry_symbol_call:
-                                entry_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
-                                entry_tick = entry_tick.get('c') if entry_tick else np.nan
-                                entry_signal = self.place_trade(current_timestamp, self.entry_symbol_call, entry_tick, 65, 65*entry_tick, "SHORT", "ENTRY_SHORT")
-                                self.in_position_call = -1
-                                self.signal_list.append(entry_signal)
-                            else:
-                                print(f'Call Symbol Is Empty. Skipping.')
-                                self.in_position_call = 0
+                        if vwap_row.c < vwap_row.vwap:
+                            if self.in_position_call == 1:
+                                current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                print(f'VWAP CALL LONG EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
+                                if self.entry_symbol_call:
+                                    exit_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
+                                    exit_tick = exit_tick.get('c') if exit_tick else np.nan
+                                    exit_signal = self.place_trade(current_timestamp, self.entry_symbol_call, exit_tick, 65, 65*exit_tick, 'SELL', 'EXIT_LONG')
+                                    self.signal_list.append(exit_signal)
+                                    self.in_position_call = 0
+                                else:
+                                    print(f'Call Symbol Is Empty. Skipping.')
+                                    self.in_position_call = 0
+                            
+                                print(f'VWAP CALL SHORT ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
+                                self.entry_symbol_call = vwap_row.symbol
+                                if self.entry_symbol_call:
+                                    entry_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
+                                    entry_tick = entry_tick.get('c') if entry_tick else np.nan
+                                    entry_signal = self.place_trade(current_timestamp, self.entry_symbol_call, entry_tick, 65, 65*entry_tick, "SHORT", "ENTRY_SHORT")
+                                    self.in_position_call = -1
+                                    self.signal_list.append(entry_signal)
+                                else:
+                                    print(f'Call Symbol Is Empty. Skipping.')
+                                    self.in_position_call = 0
 
-                        elif vwap_row.c < vwap_row.vwap and self.in_position_call == 0:
-                            print(f'VWAP CALL SHORT ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
-                            current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
-                            self.entry_symbol_call = vwap_row.symbol
-                            if self.entry_symbol_call:
-                                entry_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
-                                entry_tick = entry_tick.get('c') if entry_tick else np.nan
-                                entry_signal = self.place_trade(current_timestamp, self.entry_symbol_call, entry_tick, 65, 65*entry_tick, "SHORT", "ENTRY_SHORT")
-                                self.in_position_call = -1
-                                self.signal_list.append(entry_signal)
-                            else:
-                                print(f'Call Symbol Is Empty. Skipping.')
-                                self.in_position_call = 0
+                            elif self.in_position_call == 0:
+                                print(f'VWAP CALL SHORT ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
+                                current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                self.entry_symbol_call = vwap_row.symbol
+                                if self.entry_symbol_call:
+                                    entry_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
+                                    entry_tick = entry_tick.get('c') if entry_tick else np.nan
+                                    entry_signal = self.place_trade(current_timestamp, self.entry_symbol_call, entry_tick, 65, 65*entry_tick, "SHORT", "ENTRY_SHORT")
+                                    self.in_position_call = -1
+                                    self.signal_list.append(entry_signal)
+                                else:
+                                    print(f'Call Symbol Is Empty. Skipping.')
+                                    self.in_position_call = 0
 
                     if vwap_row.time >= self.exit_condition_time:
                         current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
@@ -319,84 +321,86 @@ class VWAP(ChakraView):
                         self.reset_all_variables_put()
                         
                     if self.entry_condition_time <= vwap_row.time < self.exit_condition_time:
-                        if vwap_row.c > vwap_row.vwap and self.in_position_put == -1:
-                            current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                        if vwap_row.c > vwap_row.vwap:
+                            if self.in_position_put == -1:
+                                current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                
+                                print(f'VWAP PUT SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
+                                if self.entry_symbol_put:
+                                    exit_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
+                                    exit_tick = exit_tick.get('c') if exit_tick else np.nan
+                                    exit_signal = self.place_trade(current_timestamp, self.entry_symbol_put, exit_tick, 65, 65*exit_tick, 'COVER', 'EXIT_SHORT')
+                                    self.signal_list.append(exit_signal)
+                                    self.in_position_put = 0
+                                else:
+                                    print(f'Put Symbol Is Empty. Skipping.')
+                                    self.in_position_put = 0
                             
-                            print(f'VWAP PUT SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
-                            if self.entry_symbol_put:
-                                exit_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
-                                exit_tick = exit_tick.get('c') if exit_tick else np.nan
-                                exit_signal = self.place_trade(current_timestamp, self.entry_symbol_put, exit_tick, 65, 65*exit_tick, 'COVER', 'EXIT_SHORT')
-                                self.signal_list.append(exit_signal)
-                                self.in_position_put = 0
-                            else:
-                                print(f'Put Symbol Is Empty. Skipping.')
-                                self.in_position_put = 0
-                        
-                            print(f'VWAP PUT LONG ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
-                            self.entry_symbol_put = vwap_row.symbol
-                            if self.entry_symbol_put:
-                                entry_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
-                                entry_tick = entry_tick.get('c') if entry_tick else np.nan
-                                entry_signal = self.place_trade(current_timestamp, self.entry_symbol_put, entry_tick, 65, 65*entry_tick, "BUY", "ENTRY_LONG")
-                                self.in_position_put = 1
-                                self.signal_list.append(entry_signal)
-                            else:
-                                print(f'Put Symbol Is Empty. Skipping.')
-                                self.in_position_put = 0
+                                print(f'VWAP PUT LONG ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
+                                self.entry_symbol_put = vwap_row.symbol
+                                if self.entry_symbol_put:
+                                    entry_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
+                                    entry_tick = entry_tick.get('c') if entry_tick else np.nan
+                                    entry_signal = self.place_trade(current_timestamp, self.entry_symbol_put, entry_tick, 65, 65*entry_tick, "BUY", "ENTRY_LONG")
+                                    self.in_position_put = 1
+                                    self.signal_list.append(entry_signal)
+                                else:
+                                    print(f'Put Symbol Is Empty. Skipping.')
+                                    self.in_position_put = 0
 
-                        elif vwap_row.c > vwap_row.vwap and self.in_position_put == 0:
-                            current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
-                            print(f'VWAP PUT LONG ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
-                            self.entry_symbol_put = vwap_row.symbol
-                            if self.entry_symbol_put:
-                                entry_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
-                                entry_tick = entry_tick.get('c') if entry_tick else np.nan
-                                entry_signal = self.place_trade(current_timestamp, self.entry_symbol_put, entry_tick, 65, 65*entry_tick, "BUY", "ENTRY_LONG")
-                                self.in_position_put = 1
-                                self.signal_list.append(entry_signal)
-                            else:
-                                print(f'Put Symbol Is Empty. Skipping.')
-                                self.in_position_put = 0
+                            elif self.in_position_put == 0:
+                                current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                print(f'VWAP PUT LONG ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
+                                self.entry_symbol_put = vwap_row.symbol
+                                if self.entry_symbol_put:
+                                    entry_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
+                                    entry_tick = entry_tick.get('c') if entry_tick else np.nan
+                                    entry_signal = self.place_trade(current_timestamp, self.entry_symbol_put, entry_tick, 65, 65*entry_tick, "BUY", "ENTRY_LONG")
+                                    self.in_position_put = 1
+                                    self.signal_list.append(entry_signal)
+                                else:
+                                    print(f'Put Symbol Is Empty. Skipping.')
+                                    self.in_position_put = 0
                         
-                        if vwap_row.c < vwap_row.vwap and self.in_position_put == 1:
-                            current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
-                            print(f'VWAP PUT LONG EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
-                            if self.entry_symbol_put:
-                                exit_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
-                                exit_tick = exit_tick.get('c') if exit_tick else np.nan
-                                exit_signal = self.place_trade(current_timestamp, self.entry_symbol_put, exit_tick, 65, 65*exit_tick, 'SELL', 'EXIT_LONG')
-                                self.signal_list.append(exit_signal)
-                                self.in_position_put = 0
-                            else:
-                                print(f'Put Symbol Is Empty. Skipping.')
-                                self.in_position_put = 0
-                        
-                            print(f'VWAP PUT SHORT ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
-                            self.entry_symbol_put = vwap_row.symbol
-                            if self.entry_symbol_put:
-                                entry_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
-                                entry_tick = entry_tick.get('c') if entry_tick else np.nan
-                                entry_signal = self.place_trade(current_timestamp, self.entry_symbol_put, entry_tick, 65, 65*entry_tick, "SHORT", "ENTRY_SHORT")
-                                self.in_position_put = -1
-                                self.signal_list.append(entry_signal)
-                            else:
-                                print(f'Put Symbol Is Empty. Skipping.')
-                                self.in_position_put = 0
+                        if vwap_row.c < vwap_row.vwap:
+                            if self.in_position_put == 1:
+                                current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                print(f'VWAP PUT LONG EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
+                                if self.entry_symbol_put:
+                                    exit_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
+                                    exit_tick = exit_tick.get('c') if exit_tick else np.nan
+                                    exit_signal = self.place_trade(current_timestamp, self.entry_symbol_put, exit_tick, 65, 65*exit_tick, 'SELL', 'EXIT_LONG')
+                                    self.signal_list.append(exit_signal)
+                                    self.in_position_put = 0
+                                else:
+                                    print(f'Put Symbol Is Empty. Skipping.')
+                                    self.in_position_put = 0
+                            
+                                print(f'VWAP PUT SHORT ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
+                                self.entry_symbol_put = vwap_row.symbol
+                                if self.entry_symbol_put:
+                                    entry_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
+                                    entry_tick = entry_tick.get('c') if entry_tick else np.nan
+                                    entry_signal = self.place_trade(current_timestamp, self.entry_symbol_put, entry_tick, 65, 65*entry_tick, "SHORT", "ENTRY_SHORT")
+                                    self.in_position_put = -1
+                                    self.signal_list.append(entry_signal)
+                                else:
+                                    print(f'Put Symbol Is Empty. Skipping.')
+                                    self.in_position_put = 0
 
-                        elif vwap_row.c < vwap_row.vwap and self.in_position_put == 0:
-                            current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
-                            print(f'VWAP PUT SHORT ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
-                            self.entry_symbol_put = vwap_row.symbol
-                            if self.entry_symbol_put:
-                                entry_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
-                                entry_tick = entry_tick.get('c') if entry_tick else np.nan
-                                entry_signal = self.place_trade(current_timestamp, self.entry_symbol_put, entry_tick, 65, 65*entry_tick, "SHORT", "ENTRY_SHORT")
-                                self.in_position_put = -1
-                                self.signal_list.append(entry_signal)
-                            else:
-                                print(f'Put Symbol Is Empty. Skipping.')
-                                self.in_position_put = 0
+                            elif self.in_position_put == 0:
+                                current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                print(f'VWAP PUT SHORT ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
+                                self.entry_symbol_put = vwap_row.symbol
+                                if self.entry_symbol_put:
+                                    entry_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
+                                    entry_tick = entry_tick.get('c') if entry_tick else np.nan
+                                    entry_signal = self.place_trade(current_timestamp, self.entry_symbol_put, entry_tick, 65, 65*entry_tick, "SHORT", "ENTRY_SHORT")
+                                    self.in_position_put = -1
+                                    self.signal_list.append(entry_signal)
+                                else:
+                                    print(f'Put Symbol Is Empty. Skipping.')
+                                    self.in_position_put = 0
 
                     if vwap_row.time >= self.exit_condition_time:
                         current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
