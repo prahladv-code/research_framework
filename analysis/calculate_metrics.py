@@ -33,41 +33,61 @@ class CalculateMetrics:
         return df
     
     def calculate_pl_in_opt_tradesheet(self, df):
-        # Convert timestamp
-        df['timestamp'] = pd.to_datetime(df['timestamp'], format='%Y-%m-%d%H:%M:%S')
 
-        # Initialize P/L column
+        df['timestamp'] = pd.to_datetime(df['timestamp'], format='%Y-%m-%d%H:%M:%S')
+        df = df.sort_values(['symbol', 'timestamp']).reset_index(drop=True)
+
         df['P/L'] = np.nan
 
-        # Group by symbol instead of date
-        df_groups = df.groupby('symbol')
+        # store open trades per symbol
+        open_positions = {}
 
-        for symbol, df1 in df_groups:
-            if len(df1) / 2 == 0:
-                if df1['trade'].iloc[0] == 'BUY':
-                    entry_price = df1.loc[df1['trade'] == 'BUY', 'price'].iloc[0]
-                    exit_rows = df1.loc[df1['trade'] == 'SELL', 'price']
-                    qty = df1['qty'].iloc[0]
-                    if not exit_rows.empty:
-                        exit_price = exit_rows.iloc[0]
-                        df.loc[df1.index[-1], 'P/L'] = (exit_price - entry_price) * qty
-                    else:
-                        # Handle incomplete trade
-                        df.loc[df1.index[-1], 'P/L'] = 0
+        for idx, row in df.iterrows():
 
-                elif df1['trade'].iloc[0] == 'SHORT':
-                    entry_price = df1.loc[df1['trade'] == 'SHORT', 'price'].iloc[0]
-                    exit_rows = df1.loc[df1['trade'] == 'COVER', 'price']
-                    qty = df1['qty'].iloc[0]
-                    if not exit_rows.empty:
-                        exit_price = exit_rows.iloc[0]
-                        df.loc[df1.index[-1], 'P/L'] = (entry_price - exit_price) * qty
+            symbol = row['symbol']
+            trade = row['trade']
+            price = row['price']
+            qty = row['qty']
+
+            if symbol not in open_positions:
+                open_positions[symbol] = []
+
+            # ENTRY TRADES
+            if trade in ['BUY', 'SHORT']:
+                open_positions[symbol].append({
+                    'price': price,
+                    'qty': qty,
+                    'type': trade,
+                    'index': idx
+                })
+
+            # EXIT TRADES
+            elif trade in ['SELL', 'COVER']:
+
+                if open_positions[symbol]:
+
+                    entry = open_positions[symbol].pop(0)
+                    entry_price = entry['price']
+                    entry_type = entry['type']
+
+                    if entry_type == 'BUY' and trade == 'SELL':
+                        pl = (price - entry_price) * qty
+
+                    elif entry_type == 'SHORT' and trade == 'COVER':
+                        pl = (entry_price - price) * qty
+
                     else:
-                        # Handle incomplete trade
-                        df.loc[df1.index[-1], 'P/L'] = 0
-            else:
-                # If incomplete trade, set P/L at last row = 0
-                df.loc[df1.index[-1], 'P/L'] = 0
+                        pl = 0  # mismatched trade types
+
+                    df.loc[idx, 'P/L'] = pl
+
+                else:
+                    df.loc[idx, 'P/L'] = 0
+
+        # remaining open positions → mark last row per symbol as 0
+        for symbol, entries in open_positions.items():
+            for entry in entries:
+                df.loc[entry['index'], 'P/L'] = 0
 
         return df
 
