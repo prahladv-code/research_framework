@@ -69,6 +69,7 @@ class VWAP(ChakraView):
             symbol_df['date'] = pd.to_datetime(symbol_df['date'], format="%Y-%m-%d").dt.date
             symbol_df['time'] = pd.to_datetime(symbol_df['time'], format="%H:%M:%S").dt.time
             day_df = symbol_df[symbol_df['date'] == date]
+            day_df = day_df.sort_values('time').reset_index(drop=True)  # ← add this
             return day_df
         else:
             return pd.DataFrame()
@@ -185,8 +186,7 @@ class VWAP(ChakraView):
         
         return df
 
-    def gen_signals_call(self, row):
-
+    def gen_signals_call(self, row):        
         if row.time == self.start:
             print(f'Found Valid Time For DateTime: {row.date} {row.time}')
             call_df = self.get_relevant_options_dataframes(row.date, row.time, 'CE', row.c)
@@ -201,7 +201,7 @@ class VWAP(ChakraView):
 
                     if self.entry_condition_time <= vwap_row.time < self.exit_condition_time:
                         if vwap_row.c > vwap_row.vwap:
-                            if self.in_position_call == -1:
+                            if self.in_position_call == -1:                                
                                 current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
                                 print(f'VWAP CALL SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
                                 if self.entry_symbol_call:
@@ -261,6 +261,7 @@ class VWAP(ChakraView):
                                     entry_tick = entry_tick.get('c') if entry_tick else np.nan
                                     entry_signal = self.place_trade(current_timestamp, self.entry_symbol_call, entry_tick, 65, 65*entry_tick, "SHORT", "ENTRY_SHORT")
                                     self.in_position_call = -1
+                                    
                                     self.signal_list.append(entry_signal)
                                 else:
                                     print(f'Call Symbol Is Empty. Skipping.')
@@ -275,6 +276,7 @@ class VWAP(ChakraView):
                                     entry_tick = entry_tick.get('c') if entry_tick else np.nan
                                     entry_signal = self.place_trade(current_timestamp, self.entry_symbol_call, entry_tick, 65, 65*entry_tick, "SHORT", "ENTRY_SHORT")
                                     self.in_position_call = -1
+                                    
                                     self.signal_list.append(entry_signal)
                                 else:
                                     print(f'Call Symbol Is Empty. Skipping.')
@@ -433,7 +435,8 @@ class VWAP(ChakraView):
 
     def gen_signals(self):
         spot_df = self.get_spot_df(self.underlying)
-        spot_df = spot_df[spot_df['date'] >= datetime.date(2024, 12, 1)]
+        spot_df = spot_df[spot_df['date'] >= datetime.date(2024, 12, 31)]
+        # spot_df = spot_df.drop_duplicates(subset=['date', 'time'])
         spot_itertuples = self.create_itertuples(spot_df)
         for row in spot_itertuples:
             self.gen_signals_call(row)
