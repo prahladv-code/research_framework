@@ -15,6 +15,8 @@ class VWAP(ChakraView):
         self.calc = calculate_metrics.CalculateMetrics()
         self.new_day_call = None
         self.new_day_put = None
+        self.reset_all_variables_call()
+        self.reset_all_variables_put()
     
     def set_params_from_uid(self, uid):
         uid_split = uid.split('_')
@@ -324,7 +326,6 @@ class VWAP(ChakraView):
                         if vwap_row.c > vwap_row.vwap:
                             if self.in_position_put == -1:
                                 current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
-                                
                                 print(f'VWAP PUT SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
                                 if self.entry_symbol_put:
                                     exit_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
@@ -366,6 +367,7 @@ class VWAP(ChakraView):
                             if self.in_position_put == 1:
                                 current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
                                 print(f'VWAP PUT LONG EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
+                                self.in_position_put = 0
                                 if self.entry_symbol_put:
                                     exit_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
                                     exit_tick = exit_tick.get('c') if exit_tick else np.nan
@@ -431,6 +433,7 @@ class VWAP(ChakraView):
 
     def gen_signals(self):
         spot_df = self.get_spot_df(self.underlying)
+        spot_df = spot_df[spot_df['date'] >= datetime.date(2024, 12, 1)]
         spot_itertuples = self.create_itertuples(spot_df)
         for row in spot_itertuples:
             self.gen_signals_call(row)
