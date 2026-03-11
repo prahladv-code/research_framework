@@ -48,7 +48,6 @@ class ChakraView:
             raise ValueError(f"Invalid option symbol: {symbol}")
         
         processed_symbol = m.groupdict()
-        print(f'Processed Symbol: {processed_symbol}')
         underlying = processed_symbol.get('underlying')
         expiry = datetime.datetime.strptime(processed_symbol.get('expiry'), '%Y%m%d')
         strike = float(processed_symbol.get('strike'))
