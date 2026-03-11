@@ -19,7 +19,7 @@ def process_expiry_tables(df, db_path):
 if __name__ == '__main__':
     parent_path = r"C:\Users\Admin\Desktop\processed_parquets"
     db_path = r"C:\Users\Admin\Desktop\db\historical_db.ddb"
-    for file in os.listdir(parent_path):
+    for file in os.listdir(parent_path):    
         full_path = os.path.join(parent_path, file)
         df = read_parquets(full_path)
         process_expiry_tables(df, db_path)
