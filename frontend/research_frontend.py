@@ -78,7 +78,7 @@ def homepage():
     st.divider()
 
 
-def calculate_metrics(folder_path, initial_margin, slippage_pct):
+def calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points:float = None):
     folder_path = folder_path
     metrics_list = []
     for file in os.listdir(folder_path):
@@ -151,7 +151,7 @@ def downloads_section():
     if st.sidebar.checkbox("Go to Downloads"):
         strat = st.selectbox(
             "Select a Strat to Download Tradebooks:",
-            ["PCCO_SPOT", "PCCO_OPT", "PRICEMA", "IVIX", "PRICEMACLOSEFILTER", 'VWAP']
+            ["PCCO_SPOT", "PCCO_OPT", "PRICEMA", "IVIX", "PRICEMACLOSEFILTER", 'VWAP', 'VWAPTRAIL']
         )
 
         if strat == "PCCO_SPOT":
@@ -166,6 +166,8 @@ def downloads_section():
             folder_path = './tradesheets/pricemaclosefilter/'
         elif strat == 'VWAP':
             folder_path = './tradesheets/vwap/'
+        elif strat == 'VWAPTRAIL':
+            folder_path = './tradesheets/vwaptrail/'
         
         
         # Check if folder exists
@@ -396,7 +398,8 @@ def portfolios_driver():
         'PRICEMA_TRAIL': './tradesheets/pricema_atr_exit/',
         'IVIX': './tradesheets/ivix/',
         'PRICEMACLOSEFILTER': './tradesheets/pricemaclosefilter/',
-        'VWAP': './tradesheets/vwap/'
+        'VWAP': './tradesheets/vwap/',
+        'VWAPTRAIL': './tradesheets/vwaptrail/'
     }
     strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP']
     
@@ -494,7 +497,8 @@ def strategy_driver():
         'PRICEMA_TRAIL': './tradesheets/pricema_atr_exit/',
         'IVIX': './tradesheets/ivix/',
         'PRICEMACLOSEFILTER': './tradesheets/pricemaclosefilter/',
-        'VWAP': './tradesheets/vwap/'
+        'VWAP': './tradesheets/vwap/',
+        'VWAPTRAIL': './tradesheets/vwaptrail/'
     }
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
     slippage_pct = st.number_input('Slippage Percentage', 0.0, 0.05, key = 'slippage')
@@ -563,6 +567,15 @@ def strategy_driver():
         calculate_pl_distribution(folder_path, initial_margin)
     
     elif selected_strat == 'VWAP':
+        folder_path = folder_paths.get(selected_strat)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
+        calculate_metrics(folder_path, initial_margin, slippage_pct)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
+        display_correlation_matrix(folder_path)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_pl_distribution(folder_path, initial_margin)
+    
+    elif selected_strat == 'VWAPTRAIL':
         folder_path = folder_paths.get(selected_strat)
         plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
         calculate_metrics(folder_path, initial_margin, slippage_pct)
