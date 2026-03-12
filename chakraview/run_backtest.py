@@ -6,7 +6,7 @@ ma_iterations = []
 underlyings = ['NIFTY'] #['GOLD', 'CRUDEOIL'] 
 timeframe_iterations = [1]
 # multiplier_iterations = [1, 1.5, 2, 2.5, 3, 3.5, 4]
-uids = ["VWAP_NIFTY_0_1_0_0"]
+uids = ["VWAP_NIFTY_0_5_0_0"]
 # for ma in ma_iterations:
 #     for timeframe in timeframe_iterations:
 #             # You can use a static method or small helper

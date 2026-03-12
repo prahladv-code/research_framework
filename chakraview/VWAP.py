@@ -61,6 +61,28 @@ class VWAP(ChakraView):
         self.in_position_put = 0
         self.entry_symbol_put = None
 
+    def generate_resampled_timestamps(self):
+        int_timeframe = int(self.timeframe)
+        print(f'TimeFrame Debug: {self.timeframe}')
+        self.start_time = datetime.time(9, 15)
+        self.end_time = datetime.time(15, 29)
+        start_dt = datetime.datetime.combine(datetime.date.today(), self.start_time)
+        end_dt = datetime.datetime.combine(datetime.date.today(), self.end_time)
+        print(f'Start Time DEBUG: {start_dt}')
+        print(f'End Time Debug: {end_dt}')
+        adjusted_end_dt = end_dt - datetime.timedelta(minutes=2)
+        valid_timestamps = []
+        while start_dt <= adjusted_end_dt:
+            start_dt += datetime.timedelta(minutes=int_timeframe)
+
+            if start_dt > adjusted_end_dt:
+                valid_timestamps.append(adjusted_end_dt.time())
+                break
+            
+            valid_timestamps.append(start_dt.time())
+
+        return valid_timestamps
+
     def get_relevant_options_dataframes(self, date: datetime.date, time: datetime.time, right: str, underlying_price: float):
         strike_details = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, date, time, underlying_price, 50, right, 0)
         if strike_details:
@@ -69,11 +91,15 @@ class VWAP(ChakraView):
             symbol_df['date'] = pd.to_datetime(symbol_df['date'], format="%Y-%m-%d").dt.date
             symbol_df['time'] = pd.to_datetime(symbol_df['time'], format="%H:%M:%S").dt.time
             day_df = symbol_df[symbol_df['date'] == date]
-            day_df = day_df.sort_values('time').reset_index(drop=True)  # ← add this
-            return day_df
+            day_df['timestamp'] = pd.to_datetime(day_df['date'].astype(str) + ' ' + day_df['time'].astype(str))
+            self.valid_timestamps = self.generate_resampled_timestamps()
+            resampled_df = day_df[day_df['timestamp'].dt.time.isin(self.valid_timestamps)].copy()
+            resampled_df.sort_values('timestamp', inplace=True)
+            # day_df = day_df.sort_values('time').reset_index(drop=True)  # ← add this
+            return resampled_df
         else:
             return pd.DataFrame()
-    
+
     def create_itertuples(self, db):
         return db.itertuples(index=False)
 
@@ -451,6 +477,3 @@ class VWAP(ChakraView):
         tradesheet = self.calc.calculate_pl_in_opt_tradesheet(signals_df)
         tradesheet.to_parquet(f"C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/vwap/{uid}.parquet")
         print('###########################BACKTEST COMPPLETE################################')
-        
-
-
