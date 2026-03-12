@@ -435,8 +435,8 @@ class VWAP(ChakraView):
 
     def gen_signals(self):
         spot_df = self.get_spot_df(self.underlying)
-        spot_df = spot_df[spot_df['date'] >= datetime.date(2024, 12, 31)]
-        # spot_df = spot_df.drop_duplicates(subset=['date', 'time'])
+        # spot_df = spot_df[spot_df['date'] >= datetime.date(2024, 12, 31)]
+        spot_df = spot_df.drop_duplicates(subset=['date', 'time'])
         spot_itertuples = self.create_itertuples(spot_df)
         for row in spot_itertuples:
             self.gen_signals_call(row)
