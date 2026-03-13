@@ -1,12 +1,28 @@
-from chakraview.VWAP import VWAP
+from chakraview.VWAPTRAILBACKUP import VWAP
 import multiprocessing as mp
 
 # ma_iterations = list(range(1, 100))
 ma_iterations = []
 underlyings = ['NIFTY'] #['GOLD', 'CRUDEOIL'] 
-timeframe_iterations = [1]
+timeframe_iterations = [5]
 # multiplier_iterations = [1, 1.5, 2, 2.5, 3, 3.5, 4]
-uids = ["VWAP_NIFTY_0_5_0_0"]
+uids = ["VWAP_GOLD_0_5_60_3",
+        "VWAP_CRUDEOIL_0_5_60_3",
+        "VWAP_NIFTY_0_5_16_3",
+        "VWAP_NIFTY_0_5_30_3",
+        "VWAP_NIFTY_0_5_40_3",
+        "VWAP_NIFTY_0_5_50_3",
+        "VWAP_NIFTY_0_5_60_3",
+        "VWAP_NIFTY_0_5_63_3",
+        "VWAP_NIFTY_0_5_33_3",
+        "VWAP_NIFTY_0_5_93_3",
+        "VWAP_NIFTY_0_5_70_3",
+        "VWAP_NIFTY_0_5_80_3",
+        "VWAP_NIFTY_0_5_30_2",
+        "VWAP_NIFTY_0_5_60_2",
+        "VWAP_NIFTY_0_5_90_2",
+        "VWAP_NIFTY_0_5_20_2"
+        ] 
 # for ma in ma_iterations:
 #     for timeframe in timeframe_iterations:
 #             # You can use a static method or small helper
@@ -33,7 +49,7 @@ def create_processes(uid_list, batch_size):
             p.join()
 
 if __name__ == '__main__':
-    create_processes(uids, 10)
+    create_processes(uids, 3)
 
 
 # "VWAP_NIFTY_0_1_0_0"

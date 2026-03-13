@@ -558,18 +558,7 @@ class VWAP(ChakraView):
                                 self.in_position_put =                                 self.in_position_put = 0
 
     def gen_signals(self):
-        commodities = ['GOLD', 'CRUDEOIL', 'SILVER']
-        commodities_underlying = None
-        if self.underlying in commodities:
-            commodities_underlying = f'{self.underlying}_I'
-        else:
-            commodities_underlying = None
-            
-        if commodities_underlying is not None:
-            spot_df = self.get_spot_df(commodities_underlying)
-        else:
-            spot_df = self.get_spot_df(self.underlying)
-        
+        spot_df = self.get_spot_df(self.underlying)
         spot_df = spot_df.drop_duplicates(subset=['date', 'time'])
         spot_df.sort_values(['date', 'time'], inplace=True)
         spot_df.reset_index(drop=True, inplace=True)

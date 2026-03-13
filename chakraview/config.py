@@ -14,6 +14,24 @@ sessions = {
     'commodities': {
         'start': datetime.time(9, 0),
         'end': datetime.time(23, 30)
+    },
+    'sensex': {
+        'start': datetime.time(9, 15),
+        'end': datetime.time(15, 29)
+    },
+    'banknifty': {
+        'start': datetime.time(9, 15),
+        'end': datetime.time(15, 29)
+    },
+
+    'gold': {
+        'start': datetime.time(9, 0),
+        'end': datetime.time(23, 55)
+    },
+
+    'crudeoil':  {
+        'start': datetime.time(9, 0),
+        'end': datetime.time(23, 55)
     }
 }
 
@@ -36,5 +54,12 @@ lot_sizes = {
     'MIDCPNIFTY': 120,
     'FINNIFTY': 60,
     'GOLD': 100,
-    'CRUDEOIL': 100
+    'CRUDEOIL': 100,
+    'SENSEX': 20
+}
+
+strike_diff = {
+    "NIFTY": 50,
+    "BANKNIFTY": 100,
+    "SENSEX": 100
 }
