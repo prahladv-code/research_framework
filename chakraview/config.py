@@ -61,5 +61,7 @@ lot_sizes = {
 strike_diff = {
     "NIFTY": 50,
     "BANKNIFTY": 100,
-    "SENSEX": 100
+    "SENSEX": 100,
+    "GOLD": 100,
+    "CRUDEOIL": 50
 }
