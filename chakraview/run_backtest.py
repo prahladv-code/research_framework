@@ -1,4 +1,4 @@
-from chakraview.VWAPTRAILBACKUP import VWAP
+from chakraview.VWAPTRAIL import VWAP
 import multiprocessing as mp
 
 # ma_iterations = list(range(1, 100))
