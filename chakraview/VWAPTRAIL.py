@@ -260,7 +260,7 @@ class VWAP(ChakraView):
                         if vwap_row.c > vwap_row.vwap:
                             if vwap_row.c > vwap_row.supertrend:
                                 if self.in_position_call == -1:                                
-                                    current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                    current_timestamp = f"{vwap_row.date} {vwap_row.time}"
                                     print(f'VWAP CALL SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
                                     if self.entry_symbol_call:
                                         exit_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
@@ -286,7 +286,7 @@ class VWAP(ChakraView):
 
                                 elif self.in_position_call == 0:
                                     print(f'VWAP CALL LONG ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
-                                    current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                    current_timestamp = f"{vwap_row.date} {vwap_row.time}"
                                     self.entry_symbol_call = vwap_row.symbol
                                     if self.entry_symbol_call:
                                         entry_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
@@ -300,7 +300,7 @@ class VWAP(ChakraView):
 
                             if vwap_row.c < vwap_row.supertrend:
                                 if self.in_position_call == 1:
-                                    current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                    current_timestamp = f"{vwap_row.date} {vwap_row.time}"
                                     print(f'VWAP CALL LONG EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
                                     if self.entry_symbol_call:
                                         exit_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
@@ -315,7 +315,7 @@ class VWAP(ChakraView):
                         if vwap_row.c < vwap_row.vwap:
                             if vwap_row.c < vwap_row.supertrend:
                                 if self.in_position_call == 1:
-                                    current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                    current_timestamp = f"{vwap_row.date} {vwap_row.time}"
                                     print(f'VWAP CALL LONG EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
                                     if self.entry_symbol_call:
                                         exit_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
@@ -341,7 +341,7 @@ class VWAP(ChakraView):
 
                                 elif self.in_position_call == 0:
                                     print(f'VWAP CALL SHORT ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
-                                    current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                    current_timestamp = f"{vwap_row.date} {vwap_row.time}"
                                     self.entry_symbol_call = vwap_row.symbol
                                     if self.entry_symbol_call:
                                         entry_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
@@ -355,7 +355,7 @@ class VWAP(ChakraView):
 
                             if vwap_row.c > vwap_row.supertrend:
                                 if self.in_position_call == -1:
-                                    current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                    current_timestamp = f"{vwap_row.date} {vwap_row.time}"
                                     print(f'VWAP CALL SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
                                     if self.entry_symbol_call:
                                         exit_tick = self.get_tick(self.entry_symbol_call, vwap_row.date, vwap_row.time)
@@ -368,7 +368,7 @@ class VWAP(ChakraView):
                                         self.in_position_call = 0
 
                     if vwap_row.time >= self.exit_condition_time:
-                        current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                        current_timestamp = f"{vwap_row.date} {vwap_row.time}"
                         if self.in_position_call == -1:
                             print(f'VWAP CALL SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
                             if self.entry_symbol_call:
@@ -424,7 +424,7 @@ class VWAP(ChakraView):
                         if vwap_row.c > vwap_row.vwap:
                             if vwap_row.c > vwap_row.supertrend:
                                 if self.in_position_put == -1:
-                                    current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                    current_timestamp = f"{vwap_row.date} {vwap_row.time}"
                                     print(f'VWAP PUT SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
                                     if self.entry_symbol_put:
                                         exit_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
@@ -449,7 +449,7 @@ class VWAP(ChakraView):
                                         self.in_position_put = 0
 
                                 elif self.in_position_put == 0:
-                                    current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                    current_timestamp = f"{vwap_row.date} {vwap_row.time}"
                                     print(f'VWAP PUT LONG ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
                                     self.entry_symbol_put = vwap_row.symbol
                                     if self.entry_symbol_put:
@@ -464,7 +464,7 @@ class VWAP(ChakraView):
 
                             if vwap_row.c < vwap_row.supertrend:
                                 if self.in_position_put == 1:
-                                    current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                    current_timestamp = f"{vwap_row.date} {vwap_row.time}"
                                     print(f'VWAP PUT LONG EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
                                     if self.entry_symbol_put:
                                         exit_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
@@ -479,7 +479,7 @@ class VWAP(ChakraView):
                         if vwap_row.c < vwap_row.vwap:
                             if vwap_row.c < vwap_row.supertrend:
                                 if self.in_position_put == 1:
-                                    current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                    current_timestamp = f"{vwap_row.date} {vwap_row.time}"
                                     print(f'VWAP PUT LONG EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
                                     if self.entry_symbol_put:
                                         exit_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
@@ -504,7 +504,7 @@ class VWAP(ChakraView):
                                         self.in_position_put = 0
 
                                 elif self.in_position_put == 0:
-                                    current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                    current_timestamp = f"{vwap_row.date} {vwap_row.time}"
                                     print(f'VWAP PUT SHORT ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
                                     self.entry_symbol_put = vwap_row.symbol
                                     if self.entry_symbol_put:
@@ -519,7 +519,7 @@ class VWAP(ChakraView):
 
                             if vwap_row.c > vwap_row.supertrend:
                                 if self.in_position_put == -1:
-                                    current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                                    current_timestamp = f"{vwap_row.date} {vwap_row.time}"
                                     print(f'VWAP PUT SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
                                     if self.entry_symbol_put:
                                         exit_tick = self.get_tick(self.entry_symbol_put, vwap_row.date, vwap_row.time)
@@ -532,7 +532,7 @@ class VWAP(ChakraView):
                                         self.in_position_put = 0
 
                     if vwap_row.time >= self.exit_condition_time:
-                        current_timestamp = str(vwap_row.date) + '' + str(vwap_row.time)
+                        current_timestamp = f"{vwap_row.date} {vwap_row.time}"
                         if self.in_position_put == -1:
                             print(f'VWAP PUT SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
                             if self.entry_symbol_put:
@@ -555,7 +555,7 @@ class VWAP(ChakraView):
                                 self.in_position_put = 0
                             else:
                                 print(f'Put Symbol Is Empty. Skipping.')
-                                self.in_position_put =                                 self.in_position_put = 0
+                                self.in_position_put = 0
 
     def gen_signals(self):
         commodities = ['GOLD', 'CRUDEOIL', 'SILVER']
