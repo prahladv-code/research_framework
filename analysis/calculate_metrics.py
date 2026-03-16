@@ -125,7 +125,7 @@ class CalculateMetrics:
         return df
 
     
-    def calculate_metrics(self, df, initial_margin, slippage_pct):
+    def calculate_metrics(self, df, initial_margin, slippage_pct, slippage_points: float = None):
         df = df[df['P/L'].notna()].copy()
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         slippage = df['cv'] * slippage_pct
