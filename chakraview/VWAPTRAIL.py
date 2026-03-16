@@ -573,7 +573,6 @@ class VWAP(ChakraView):
         spot_df = spot_df.drop_duplicates(subset=['date', 'time'])
         spot_df.sort_values(['date', 'time'], inplace=True)
         spot_df.reset_index(drop=True, inplace=True)
-        spot_df = spot_df[spot_df['date'] == datetime.date(2025, 12, 26)]
         spot_itertuples = self.create_itertuples(spot_df)
         for row in spot_itertuples:
             self.gen_signals_call(row)
@@ -585,6 +584,6 @@ class VWAP(ChakraView):
         signals = self.gen_signals()
         signals_df = pd.DataFrame(signals)
         tradesheet = self.calc.calculate_pl_in_opt_tradesheet(signals_df)
-        tradesheet.to_csv(f"C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/vwaptrail/{uid}.csv")
-        # tradesheet.to_parquet(f"C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/vwaptrail/{uid}.parquet")
+        # tradesheet.to_csv(f"C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/vwaptrail/{uid}.csv")
+        tradesheet.to_parquet(f"C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/vwaptrail/{uid}.parquet")
         print('###########################BACKTEST COMPLETE################################')
