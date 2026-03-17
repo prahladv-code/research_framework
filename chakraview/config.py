@@ -3,33 +3,25 @@ import redis
 
 r = redis.Redis('localhost', 6379, 0)
 sessions = {
-    'nifty': {
+    'NIFTY': {
         'start': datetime.time(9, 15),
         'end': datetime.time(15, 29)
     },
-    'nifty_fut': {
+    'SENSEX': {
         'start': datetime.time(9, 15),
         'end': datetime.time(15, 29)
     },
-    'commodities': {
-        'start': datetime.time(9, 0),
-        'end': datetime.time(23, 30)
-    },
-    'sensex': {
-        'start': datetime.time(9, 15),
-        'end': datetime.time(15, 29)
-    },
-    'banknifty': {
+    'BANKNIFTY': {
         'start': datetime.time(9, 15),
         'end': datetime.time(15, 29)
     },
 
-    'gold': {
+    'GOLD': {
         'start': datetime.time(9, 0),
         'end': datetime.time(23, 55)
     },
 
-    'crudeoil':  {
+    'CRUDEOIL':  {
         'start': datetime.time(9, 0),
         'end': datetime.time(23, 55)
     }
