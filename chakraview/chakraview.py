@@ -130,23 +130,27 @@ class ChakraView:
 
 
     def get_tick(self, symbol: str, date: datetime.date, time: datetime.time):
-        start = t.time()
-        date_str = date.strftime('%Y-%m-%d')
-        time_str = time.strftime('%H:%M:%S')
-        self.tick_query = f"""
-        SELECT * FROM "{date_str}" WHERE time = '{time_str}' AND symbol = '{symbol}'
-        """
-        df = self.daily_tb.execute(self.tick_query).fetchdf()
-        df_renamed = df.rename(columns={'open': 'o', 'high': 'h', 'low': 'l', 'close': 'c', 'volume': 'v'})
-        df_filtered = df_renamed[['o', 'h', 'l', 'c', 'v', 'oi']].copy()
-        
-        if df_filtered.empty:
+        try:
+            start = t.time()
+            date_str = date.strftime('%Y-%m-%d')
+            time_str = time.strftime('%H:%M:%S')
+            self.tick_query = f"""
+            SELECT * FROM "{date_str}" WHERE time = '{time_str}' AND symbol = '{symbol}'
+            """
+            df = self.daily_tb.execute(self.tick_query).fetchdf()
+            df_renamed = df.rename(columns={'open': 'o', 'high': 'h', 'low': 'l', 'close': 'c', 'volume': 'v'})
+            df_filtered = df_renamed[['o', 'h', 'l', 'c', 'v', 'oi']].copy()
+            
+            if df_filtered.empty:
+                return {}
+            
+            tick_dict = df_filtered.to_dict(orient = 'records')
+            end = t.time()
+            print(f'Elapsed Time In Getting Tick: {end-start}')
+            return tick_dict[0]
+        except Exception as e:
+            print(f'Error In Retrieving Tick: {e}')
             return {}
-        
-        tick_dict = df_filtered.to_dict(orient = 'records')
-        end = t.time()
-        print(f'Elapsed Time In Getting Tick: {end-start}')
-        return tick_dict[0]
     
     def get_all_ticks_by_timestamp(self, underlying: str, expiry_code: int, date: datetime.date, time: datetime.time):
         start = t.time()
