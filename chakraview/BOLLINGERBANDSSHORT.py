@@ -5,6 +5,8 @@ import datetime
 from chakraview.config import sessions, lot_sizes, strike_diff
 from chakraview.logger import logger
 from analysis.calculate_metrics import CalculateMetrics
+
+
 class BOLLINGER(ChakraView):
     def __init__(self):
         super().__init__()
@@ -148,25 +150,6 @@ class BOLLINGER(ChakraView):
         if self.high_level is not None:
             if self.in_position == 0:
                 if row.c > self.high_level:
-                    entry_ticker = self.find_resampled_options_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, row.time, row.c, self.strike_diff, 'CE', 0)
-                    current_timestamp = f"{row.date} {row.time}"
-                    if entry_ticker:
-                        self.entry_symbol = entry_ticker.get('symbol')
-                        entry_price = entry_ticker.get('c')
-                        self.expiry = entry_ticker.get('expiry').date()
-                        logger.debug(f'Expiry Debug: {self.expiry}, Dtype: {type(self.expiry)}, Date row Dtype: {type(row.date)}')
-                        entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'BUY', 'ENTRY_LONG')
-                        self.target_price = entry_price * self.target
-                        self.signals.append(entry_trade)
-                        self.in_position = 1
-                        logger.info(f"CALL LONG SIGNAL FOUND AT {current_timestamp}")
-                    else:
-                        logger.warning("CALL ENTRY TICKER IS NONE")
-                        self.reset_all_variables()
-        
-        if self.low_level is not None:
-            if self.in_position == 0:
-                if row.c < self.low_level:
                     entry_ticker = self.find_resampled_options_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, row.time, row.c, self.strike_diff, 'PE', 0)
                     current_timestamp = f"{row.date} {row.time}"
                     if entry_ticker:
@@ -174,13 +157,32 @@ class BOLLINGER(ChakraView):
                         entry_price = entry_ticker.get('c')
                         self.expiry = entry_ticker.get('expiry').date()
                         logger.debug(f'Expiry Debug: {self.expiry}, Dtype: {type(self.expiry)}, Date row Dtype: {type(row.date)}')
-                        entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'BUY', 'ENTRY_LONG')
+                        entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'SHORT', 'ENTRY_SHORT')
+                        self.target_price = entry_price * self.target
+                        self.signals.append(entry_trade)
+                        self.in_position = 1
+                        logger.info(f"PUT SHORT SIGNAL FOUND AT {current_timestamp}")
+                    else:
+                        logger.warning("PUT ENTRY TICKER IS NONE")
+                        self.reset_all_variables()
+        
+        if self.low_level is not None:
+            if self.in_position == 0:
+                if row.c < self.low_level:
+                    entry_ticker = self.find_resampled_options_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, row.time, row.c, self.strike_diff, 'CE', 0)
+                    current_timestamp = f"{row.date} {row.time}"
+                    if entry_ticker:
+                        self.entry_symbol = entry_ticker.get('symbol')
+                        entry_price = entry_ticker.get('c')
+                        self.expiry = entry_ticker.get('expiry').date()
+                        logger.debug(f'Expiry Debug: {self.expiry}, Dtype: {type(self.expiry)}, Date row Dtype: {type(row.date)}')
+                        entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'SHORT', 'ENTRY_SHORT')
                         self.target_price = entry_price * self.target
                         self.signals.append(entry_trade)
                         self.in_position = -1
-                        logger.info(f"PUT LONG SIGNAL FOUND AT {current_timestamp}")
+                        logger.info(f"CALL SHORT SIGNAL FOUND AT {current_timestamp}")
                     else:
-                        logger.warning("PUT ENTRY TICKER IS NONE")
+                        logger.warning("CALL ENTRY TICKER IS NONE")
                         self.reset_all_variables()
         
         if self.stoploss_level is not None:
@@ -193,12 +195,12 @@ class BOLLINGER(ChakraView):
                         exit_tick = None
                     if exit_tick:
                         exit_price = exit_tick.get('c')
-                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'SELL', 'EXIT_LONG')
+                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'COVER', 'EXIT_SHORT')
                         self.signals.append(exit_trade)
                         self.reset_all_variables()
-                        logger.info(f'LONG CALL EXIT SIGNAL FOUND AT {current_timestamp}')
+                        logger.info(f'SHORT PUT EXIT SIGNAL FOUND AT {current_timestamp}')
                     else:
-                        logger.warning("CALL EXIT TICK FOUND EMPTY. SKIPPING.")
+                        logger.warning("PUT EXIT TICK FOUND EMPTY. SKIPPING.")
                         self.reset_all_variables()
 
             if self.in_position == -1:
@@ -210,12 +212,12 @@ class BOLLINGER(ChakraView):
                         exit_tick = None
                     if exit_tick:
                         exit_price = exit_tick.get('c')
-                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'SELL', 'EXIT_LONG')
+                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'COVER', 'EXIT_SHORT')
                         self.signals.append(exit_trade)
                         self.reset_all_variables()
-                        logger.info(f'LONG PUT EXIT SIGNAL FOUND AT {current_timestamp}')
+                        logger.info(f'SHORT CALL EXIT SIGNAL FOUND AT {current_timestamp}')
                     else:
-                        logger.warning("PUT EXIT TICK FOUND EMPTY. SKIPPING.")
+                        logger.warning("CALL EXIT TICK FOUND EMPTY. SKIPPING.")
                         self.reset_all_variables()
         
         if self.in_position == 1:
@@ -223,15 +225,15 @@ class BOLLINGER(ChakraView):
                 target_ticker = self.get_resampled_options_tick(self.entry_symbol, row.date, row.time)
                 if target_ticker:
                     target_tick = target_ticker.get('c')
-                    if target_tick >= self.target_price:
+                    if target_tick <= self.target_price:
                         current_timestamp = f"{row.date} {row.time}"
                         exit_price = target_tick
-                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'SELL', 'EXIT_LONG')
+                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'COVER', 'EXIT_SHORT')
                         self.signals.append(exit_trade)
                         self.reset_all_variables()
-                        logger.info(f'LONG CALL EXIT SIGNAL FOUND AT {current_timestamp}')
+                        logger.info(f'SHORT PUT EXIT SIGNAL FOUND AT {current_timestamp}')
                 else:
-                    logger.warning(f'CALL EXIT TICK FOUND EMPTY. SKIPPING.')
+                    logger.warning(f'PUT EXIT TICK FOUND EMPTY. SKIPPING.')
                     self.reset_all_variables()
         
         if self.in_position == -1:
@@ -239,15 +241,15 @@ class BOLLINGER(ChakraView):
                 target_ticker = self.get_resampled_options_tick(self.entry_symbol, row.date, row.time)
                 if target_ticker:
                     target_tick = target_ticker.get('c')
-                    if target_tick >= self.target_price:
+                    if target_tick <= self.target_price:
                         current_timestamp = f"{row.date} {row.time}"
                         exit_price = target_tick
-                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'SELL', 'EXIT_LONG')
+                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'COVER', 'EXIT_SHORT')
                         self.signals.append(exit_trade)
                         self.reset_all_variables()
-                        logger.info(f'LONG PUT EXIT SIGNAL FOUND AT {current_timestamp}')
+                        logger.info(f'SHORT CALL EXIT SIGNAL FOUND AT {current_timestamp}')
                 else:
-                    logger.warning("PUT EXIT TICK FOUND EMPTY. SKIPPING.")
+                    logger.warning("CALL EXIT TICK FOUND EMPTY. SKIPPING.")
                     self.reset_all_variables()
 
         if row.date == self.expiry and row.time == datetime.time(15, 5, 0):
@@ -257,12 +259,12 @@ class BOLLINGER(ChakraView):
                 if exit_ticker:
                     current_timestamp = f"{row.date} {row.time}"
                     exit_price = exit_ticker.get('c')
-                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, exit_price * self.qty, 'SELL', 'EXIT_LONG')
+                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, exit_price * self.qty, 'COVER', 'EXIT_SHORT')
                     self.signals.append(exit_trade)
                     self.reset_all_variables()
-                    logger.info(f'LONG CALL EXIT SIGNAL FOUND AT {current_timestamp}')
+                    logger.info(f'SHORT PUT EXIT SIGNAL FOUND AT {current_timestamp}')
                 else:
-                    logger.warning(f'CALL EXIT TICK FOUND EMPTY. SKIPPING.')
+                    logger.warning(f'PUT EXIT TICK FOUND EMPTY. SKIPPING.')
                     self.reset_all_variables()
 
             if self.in_position == -1:
@@ -270,12 +272,12 @@ class BOLLINGER(ChakraView):
                 if exit_ticker:
                     current_timestamp = f"{row.date} {row.time}"
                     exit_price = exit_ticker.get('c')
-                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, exit_price * self.qty, 'SELL', 'EXIT_LONG')
+                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, exit_price * self.qty, 'COVER', 'EXIT_SHORT')
                     self.signals.append(exit_trade)
                     self.reset_all_variables()
-                    logger.info(f'LONG PUT EXIT SIGNAL FOUND AT {current_timestamp}')
+                    logger.info(f'SHORT CALL EXIT SIGNAL FOUND AT {current_timestamp}')
                 else:
-                    logger.warning(f'PUT EXIT TICK FOUND EMPTY. SKIPPING.')
+                    logger.warning(f'CALL EXIT TICK FOUND EMPTY. SKIPPING.')
                     self.reset_all_variables()
 
 
@@ -297,10 +299,7 @@ class BOLLINGER(ChakraView):
         
         tradesheet = pd.DataFrame(self.signals)
         tradesheet = self.calc.calculate_pl_in_opt_tradesheet(tradesheet)
-        tradesheet.to_parquet(f"C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/bollinger/{uid}.parquet")
+        tradesheet.to_parquet(f"C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/bollingershort/{uid}.parquet")
         logger.info('###########################BACKTEST COMPLETE################################')
 
 
-if __name__ == '__main__':
-    bb = BOLLINGER()
-    bb.run_backtest("BOLLINGERBANDS_NIFTY_0_25_60_2_1.5")
