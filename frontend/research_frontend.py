@@ -151,7 +151,7 @@ def downloads_section():
     if st.sidebar.checkbox("Go to Downloads"):
         strat = st.selectbox(
             "Select a Strat to Download Tradebooks:",
-            ["PCCO_SPOT", "PCCO_OPT", "PRICEMA", "IVIX", "PRICEMACLOSEFILTER", 'VWAP', 'VWAPTRAIL', 'BOLLINGERBANDS', 'BOLLINGERSHORT']
+            ["PCCO_SPOT", "PCCO_OPT", "PRICEMA", "IVIX", "PRICEMACLOSEFILTER", 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT']
         )
 
         if strat == "PCCO_SPOT":
@@ -168,8 +168,6 @@ def downloads_section():
             folder_path = './tradesheets/vwap/'
         elif strat == 'VWAPTRAIL':
             folder_path = './tradesheets/vwaptrail/'
-        elif strat == 'BOLLINGERBANDS':
-            folder_path = './tradesheets/bollinger/'
         elif strat == 'BOLLINGERSHORT':
             folder_path = './tradesheets/bollingershort/'
         
@@ -404,10 +402,9 @@ def portfolios_driver():
         'PRICEMACLOSEFILTER': './tradesheets/pricemaclosefilter/',
         'VWAP': './tradesheets/vwap/',
         'VWAPTRAIL': './tradesheets/vwaptrail/',
-        'BOLLINGERBANDS': './tradesheets/bollinger/',
         'BOLLINGERSHORT': './tradesheets/bollingershort/'
     }
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERBANDS', 'BOLLINGERSHORT']
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT']
     
     # Select strategies
     strats = st.multiselect('Strategies', strategies)
@@ -493,7 +490,7 @@ def portfolios_driver():
         
 
 def strategy_driver():
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERBANDS', 'BOLLINGERSHORT']  # both options in the same radio
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT']  # both options in the same radio
     selected_strat = st.sidebar.radio('Select A Strategy', strategies, key='pcco_strategy')
     folder_paths = {
         'PCCO_SPOT': './tradesheets/pcco/',
@@ -505,7 +502,6 @@ def strategy_driver():
         'PRICEMACLOSEFILTER': './tradesheets/pricemaclosefilter/',
         'VWAP': './tradesheets/vwap/',
         'VWAPTRAIL': './tradesheets/vwaptrail/',
-        'BOLLINGERBANDS': './tradesheets/bollinger/',
         'BOLLINGERSHORT': './tradesheets/bollingershort/'
     }
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
@@ -584,15 +580,6 @@ def strategy_driver():
         calculate_pl_distribution(folder_path, initial_margin)
     
     elif selected_strat == 'VWAPTRAIL':
-        folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
-        calculate_metrics(folder_path, initial_margin, slippage_pct)
-        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
-        display_correlation_matrix(folder_path)
-        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
-        calculate_pl_distribution(folder_path, initial_margin)
-    
-    elif selected_strat == 'BOLLINGERBANDS':
         folder_path = folder_paths.get(selected_strat)
         plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
         calculate_metrics(folder_path, initial_margin, slippage_pct)
