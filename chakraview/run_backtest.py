@@ -1,4 +1,4 @@
-from chakraview.BOLLINGERBANDSSHORT import BOLLINGER
+from chakraview.PRICEMABANDS import PRICEMA
 import multiprocessing as mp
 
 # ma_iterations = list(range(1, 100))
@@ -7,18 +7,20 @@ underlyings = ['NIFTY'] #['GOLD', 'CRUDEOIL']
 timeframe_iterations = [5]
 # multiplier_iterations = [1, 1.5, 2, 2.5, 3, 3.5, 4]
 uids = [
-        "BOLLINGERBANDS_NIFTY_0_25_60_2_0.1",
-        "BOLLINGERBANDS_NIFTY_0_25_30_2_0.1",
-        "BOLLINGERBANDS_NIFTY_0_25_90_2_0.1",
-        "BOLLINGERBANDS_NIFTY_0_25_30_1.5_0.1",
-        "BOLLINGERBANDS_NIFTY_0_25_60_1.5_0.1",
-        "BOLLINGERBANDS_NIFTY_0_25_90_1.5_0.1",
-        "BOLLINGERBANDS_NIFTY_0_25_30_2_0.05",
-        "BOLLINGERBANDS_NIFTY_0_25_60_2_0.05",
-        "BOLLINGERBANDS_NIFTY_0_25_90_2_0.05",
-        "BOLLINGERBANDS_NIFTY_0_25_30_1.5_0.05",
-        "BOLLINGERBANDS_NIFTY_0_25_60_1.5_0.05",
-        "BOLLINGERBANDS_NIFTY_0_25_90_1.5_0.05",
+        "PRICEMABANDS_NIFTY_0_33_25_1",
+        "PRICEMABANDS_NIFTY_0_63_25_1",
+        "PRICEMABANDS_NIFTY_0_93_25_1",
+        # "BOLLINGERBANDS_NIFTY_0_25_30_2_0.1",
+        # "BOLLINGERBANDS_NIFTY_0_25_90_2_0.1",
+        # "BOLLINGERBANDS_NIFTY_0_25_30_1.5_0.1",
+        # "BOLLINGERBANDS_NIFTY_0_25_60_1.5_0.1",
+        # "BOLLINGERBANDS_NIFTY_0_25_90_1.5_0.1",
+        # "BOLLINGERBANDS_NIFTY_0_25_30_2_0.05",
+        # "BOLLINGERBANDS_NIFTY_0_25_60_2_0.05",
+        # "BOLLINGERBANDS_NIFTY_0_25_90_2_0.05",
+        # "BOLLINGERBANDS_NIFTY_0_25_30_1.5_0.05",
+        # "BOLLINGERBANDS_NIFTY_0_25_60_1.5_0.05",
+        # "BOLLINGERBANDS_NIFTY_0_25_90_1.5_0.05",
         ] 
 # for ma in ma_iterations:
 #     for timeframe in timeframe_iterations:
@@ -28,7 +30,7 @@ uids = [
 #             # uids.append(uid)
 
 def run_backtest(uid):
-    backtest = BOLLINGER()         # instantiate here (not outside)
+    backtest = PRICEMA()         # instantiate here (not outside)
     backtest.run_backtest(uid)
 
 def create_processes(uid_list, batch_size):

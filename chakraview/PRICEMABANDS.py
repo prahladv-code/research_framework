@@ -13,6 +13,7 @@ class PRICEMA:
         self.previous_date = None
         self.metrics = CalculateMetrics()
         self.continuous_codes = continuous_codes
+        self.signals_list = []
     
     def reset_all_variables(self):
         self.entry_price = np.nan
@@ -41,10 +42,10 @@ class PRICEMA:
         self.fut_series = self.continuous_codes.get(self.expiry_code)
         self.ma_period = int(uid_split.pop(0))
         self.timeframe = uid_split.pop(0)
-        self.reentry = uid_split.pop(0) == 'True'
+        self.atr_multiplier = float(uid_split.pop(0))
         self.qty = lot_sizes.get(self.underlying)
-        self.start_time = sessions.get('nifty_fut').get('start')
-        self.end_time = sessions.get('nifty_fut').get('end')
+        self.start_time = sessions.get(self.underlying).get('start')
+        self.end_time = sessions.get(self.underlying).get('end')
         self.strike_diff = strike_diff.get(self.underlying)
     
     def get_actual_event_timestamp(self, timestamp: datetime):
@@ -79,6 +80,61 @@ class PRICEMA:
             valid_timestamps.append(start_dt.time())
 
         return valid_timestamps
+    
+    def calculate_pricemabands(self, db):
+
+        # compute ATR
+        db['prev_close'] = db['c'].shift(1)
+        db['tr'] = np.maximum.reduce([
+            db['h'] - db['l'],
+            (db['h'] - db['prev_close']).abs(),
+            (db['l'] - db['prev_close']).abs()
+        ])
+        db['atr'] = db['tr'].rolling(self.ma_period).mean()
+        db['ma'] = db['c'].rolling(self.ma_period).mean()
+        db['upperband'] = db['ma'] + self.atr_multiplier * db['atr']
+        db['lowerband'] = db['ma'] - self.atr_multiplier * db['atr']
+        return db
+    
+
+    def resample_df(self, db):
+
+        df = db.copy()
+
+        # create timestamp
+        df['timestamp'] = (
+            pd.to_datetime(df['date']) +
+            pd.to_timedelta(df['time'].astype(str))
+        )
+
+        resampled_list = []
+
+        for date, day_df in df.groupby('date'):
+
+            day_df = day_df.set_index('timestamp')
+
+            resampled = day_df.resample(
+                f'{self.timeframe}min',
+                label='left',
+                closed='left',
+                origin='start_day',
+                offset='9h15min'
+            ).agg({
+                'o': 'first',
+                'h': 'max',
+                'l': 'min',
+                'c': 'last'
+            })
+
+            resampled_list.append(resampled)
+
+        resampled_df = pd.concat(resampled_list)
+
+        resampled_df = resampled_df.reset_index(drop=False)
+        resampled_df['date'] = resampled_df['timestamp'].dt.date
+        resampled_df['time'] = resampled_df['timestamp'].dt.time
+
+        return resampled_df.dropna()
 
     def gen_signals(self):
         signals_list = []
@@ -92,129 +148,123 @@ class PRICEMA:
             self.db = self.ck.get_spot_df(self.underlying)
             
         df = self.db.copy()
-        df['timestamp'] = pd.to_datetime(df['date'].astype(str) + ' ' + df['time'].astype(str))
-
-        self.valid_timestamps = self.generate_resampled_timestamps()
-        print(f'Valid Timestamp Debug: {self.valid_timestamps}')
-        
-        resampled_df = df[df['timestamp'].dt.time.isin(self.valid_timestamps)].copy()
-        resampled_df.sort_values('timestamp', inplace=True)
-        resampled_df['ma'] = resampled_df['c'].rolling(self.ma_period).mean()
-        iterable = self.create_itertupes(resampled_df)
+        resampled_df = self.resample_df(df)
+        resampled_df = resampled_df.sort_values(by='timestamp').reset_index(drop = True)
+        indicator_df = self.calculate_pricemabands(resampled_df)
+        indicator_df = indicator_df[(indicator_df['time'] >= datetime.time(9, 15)) & (indicator_df['time'] < datetime.time(15, 30, 0))]
+        iterable = self.create_itertupes(indicator_df)
         self.in_position = 0
         for self.row in iterable:
             new_day = self.check_new_day(self.row.timestamp.date())
             #ENTRY
-            if self.row.timestamp.time() in self.valid_timestamps:
-                print(f'Timestamp Match Found: {self.row.timestamp.time()}')
-                if self.row.c > self.row.ma:
-                    if self.in_position == -1:
-                        self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), self.row.timestamp.time())
-                        self.exit_price = self.tick.get('c') if self.tick else np.nan
-                        self.exit_trade = 'COVER'
-                        self.entry_price = self.exit_price
-                        self.entry_trade = 'BUY'
-                        self.in_position = 1
-                        signals_list.append(
-                                    {
-                                        'timestamp': self.row.timestamp,
-                                        'symbol': f'{self.underlying}-FUT',
-                                        'price': self.exit_price,
-                                        'qty': self.qty,
-                                        'cv': self.qty*self.exit_price if self.exit_price else 0,
-                                        'trade': self.exit_trade,
-                                        'system action': 'SHORT_EXIT' 
-                                    }
-                        )
+            if self.row.c > self.row.upperband:
+                if self.in_position == -1:
+                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), self.row.timestamp.time())
+                    self.exit_price = self.tick.get('c') if self.tick else np.nan
+                    self.exit_trade = 'COVER'
+                    self.entry_price = self.exit_price
+                    self.entry_trade = 'BUY'
+                    self.in_position = 1
+                    signals_list.append(
+                                {
+                                    'timestamp': self.row.timestamp,
+                                    'symbol': f'{self.underlying}-FUT',
+                                    'price': self.exit_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*self.exit_price if self.exit_price else 0,
+                                    'trade': self.exit_trade,
+                                    'system action': 'SHORT_EXIT' 
+                                }
+                    )
 
-                        signals_list.append(
-                                    {
-                                        'timestamp': self.row.timestamp,
-                                        'symbol': f'{self.underlying}-FUT',
-                                        'price': self.entry_price,
-                                        'qty': self.qty,
-                                        'cv': self.qty*self.entry_price if self.entry_price else 0,
-                                        'trade': self.entry_trade,
-                                        'system action': 'LONG_ENTRY' 
-                                    }
-                        )
+                    signals_list.append(
+                                {
+                                    'timestamp': self.row.timestamp,
+                                    'symbol': f'{self.underlying}-FUT',
+                                    'price': self.entry_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*self.entry_price if self.entry_price else 0,
+                                    'trade': self.entry_trade,
+                                    'system action': 'LONG_ENTRY' 
+                                }
+                    )
 
-                    elif self.in_position != 1:
-                        self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), self.row.timestamp.time())
-                        self.entry_price = self.tick.get('c') if self.tick else np.nan
-                        self.entry_trade = 'BUY'
-                        self.in_position = 1
-                        print('ADDING LONG ENTRY')
-                        signals_list.append(
-                                    {
-                                        'timestamp': self.row.timestamp,
-                                        'symbol': f'{self.underlying}-FUT',
-                                        'price': self.entry_price,
-                                        'qty': self.qty,
-                                        'cv': self.qty*self.entry_price if self.entry_price else 0,
-                                        'trade': self.entry_trade,
-                                        'system action': 'LONG_ENTRY' 
-                                    }
-                        )
+                elif self.in_position != 1:
+                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), self.row.timestamp.time())
+                    self.entry_price = self.tick.get('c') if self.tick else np.nan
+                    self.entry_trade = 'BUY'
+                    self.in_position = 1
+                    print('ADDING LONG ENTRY')
+                    signals_list.append(
+                                {
+                                    'timestamp': self.row.timestamp,
+                                    'symbol': f'{self.underlying}-FUT',
+                                    'price': self.entry_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*self.entry_price if self.entry_price else 0,
+                                    'trade': self.entry_trade,
+                                    'system action': 'LONG_ENTRY' 
+                                }
+                    )
 
-                if self.row.c < self.row.ma:
-                    if self.in_position == 1:
-                        self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), self.row.timestamp.time())
-                        self.exit_price = self.tick.get('c') if self.tick else np.nan
-                        self.exit_trade = 'SELL'
-                        self.entry_price = self.exit_price
-                        self.entry_trade = 'SHORT'
-                        self.in_position = -1
-                        signals_list.append(
-                                    {
-                                        'timestamp': self.row.timestamp,
-                                        'symbol': f'{self.underlying}-FUT',
-                                        'price': self.exit_price,
-                                        'qty': self.qty,
-                                        'cv': self.qty*self.exit_price if self.exit_price else np.nan,
-                                        'trade': self.exit_trade,
-                                        'system action': 'LONG_EXIT' 
-                                    }
-                        )
-                        signals_list.append(
-                                    {
-                                        'timestamp': self.row.timestamp,
-                                        'symbol': f'{self.underlying}-FUT',
-                                        'price': self.entry_price,
-                                        'qty': self.qty,
-                                        'cv': self.qty*self.entry_price if self.entry_price else np.nan,
-                                        'trade': self.entry_trade,
-                                        'system action': 'SHORT_ENTRY' 
-                                    }
-                        )
+            if self.row.c < self.row.lowerband:
+                if self.in_position == 1:
+                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), self.row.timestamp.time())
+                    self.exit_price = self.tick.get('c') if self.tick else np.nan
+                    self.exit_trade = 'SELL'
+                    self.entry_price = self.exit_price
+                    self.entry_trade = 'SHORT'
+                    self.in_position = -1
+                    signals_list.append(
+                                {
+                                    'timestamp': self.row.timestamp,
+                                    'symbol': f'{self.underlying}-FUT',
+                                    'price': self.exit_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*self.exit_price if self.exit_price else np.nan,
+                                    'trade': self.exit_trade,
+                                    'system action': 'LONG_EXIT' 
+                                }
+                    )
+                    signals_list.append(
+                                {
+                                    'timestamp': self.row.timestamp,
+                                    'symbol': f'{self.underlying}-FUT',
+                                    'price': self.entry_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*self.entry_price if self.entry_price else np.nan,
+                                    'trade': self.entry_trade,
+                                    'system action': 'SHORT_ENTRY' 
+                                }
+                    )
 
-                    elif self.in_position != -1:
-                        self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), self.row.timestamp.time())
-                        self.entry_price = self.tick.get('c') if self.tick else np.nan
-                        self.entry_trade = 'SHORT'
-                        self.in_position = -1
-                        print('ADDING SHORT ENTRY')
-                        signals_list.append(
-                                    {
-                                        'timestamp': self.row.timestamp,
-                                        'symbol': f'{self.underlying}-FUT',
-                                        'price': self.entry_price,
-                                        'qty': self.qty,
-                                        'cv': self.qty*self.entry_price if self.entry_price else 0,
-                                        'trade': self.entry_trade,
-                                        'system action': 'SHORT_ENTRY' 
-                                    }
-                        )
+                elif self.in_position != -1:
+                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), self.row.timestamp.time())
+                    self.entry_price = self.tick.get('c') if self.tick else np.nan
+                    self.entry_trade = 'SHORT'
+                    self.in_position = -1
+                    print('ADDING SHORT ENTRY')
+                    signals_list.append(
+                                {
+                                    'timestamp': self.row.timestamp,
+                                    'symbol': f'{self.underlying}-FUT',
+                                    'price': self.entry_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*self.entry_price if self.entry_price else 0,
+                                    'trade': self.entry_trade,
+                                    'system action': 'SHORT_ENTRY' 
+                                }
+                    )
 
         return signals_list
 
-    def create_backtest(self, uid: str):
+    def run_backtest(self, uid: str):
         start = time.time()
         self.set_signal_parameters(uid)
         signals = self.gen_signals()
         df = pd.DataFrame(signals)
         tradesheet = self.metrics.calculate_pl_in_positional_tradesheet(df)
-        tradesheet.to_parquet(f'C:/Users/Prahlad/108_research/tradesheets/pricemaclosefilter/{uid}.parquet')
+        tradesheet.to_parquet(f'C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/pricemabands/{uid}.parquet')
         end = time.time()
         print(f'Elapsed Time In COMPLETING raw Tradesheet Generation: {end-start}')
         print("+++++++++++++++++++++++++++++++++++++++ GENERATED UID +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
