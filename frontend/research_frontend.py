@@ -84,7 +84,7 @@ def calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points
     for file in os.listdir(folder_path):
         try:
             df = pd.read_parquet(folder_path + file)
-            df_metrics, metrics = calc.calculate_metrics(df, initial_margin, slippage_pct)
+            df_metrics, metrics = calc.calculate_metrics(df, initial_margin, slippage_pct, slippage_points)
             uid = file.split('.parquet')[0]
             metrics['uid'] = uid
             print(metrics)
@@ -207,14 +207,14 @@ def downloads_section():
             st.warning("⚠️ Folder path does not exist.")
 
 
-def plot_all_eq_curves(folder_path, initial_margin, slippage_pct):
+def plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points: float = None):
 
     df_list = []
 
     for file in os.listdir(folder_path):
         if file.endswith('.parquet'):
             df = pd.read_parquet(os.path.join(folder_path, file))
-            df_metrics, metrics = calc.calculate_metrics(df, initial_margin, slippage_pct)
+            df_metrics, metrics = calc.calculate_metrics(df, initial_margin, slippage_pct, slippage_points)
             temp_df = pd.DataFrame({
                 'Trade': df_metrics['timestamp'],
                 'Equity Curve': df_metrics['Equity Curve'],
@@ -239,10 +239,10 @@ def plot_all_eq_curves(folder_path, initial_margin, slippage_pct):
     # Display in Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
-def display_multi_select_strats(folder_path, initial_margin, slippage_pct):
+def display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points: float = None):
     portfolio_list = st.multiselect("Combined Portfolio Metrics", [file.split('.parquet')[0] for file in os.listdir(folder_path)])
     if portfolio_list:
-        metrics_df, portfolio = calc.calculate_portfolio_metrics(portfolio_list, folder_path, initial_margin, slippage_pct)
+        metrics_df, portfolio = calc.calculate_portfolio_metrics(portfolio_list, folder_path, initial_margin, slippage_pct, slippage_points)
         st.write("Portfolio Metrics")
         st.dataframe(metrics_df)
         st.divider()
@@ -274,9 +274,9 @@ def display_correlation_matrix(folder_path):
         st.info("Select one or More UIDs to generate correlation matrix.")
 
 
-def calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct):
+def calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points: float = None):
     if st.checkbox("Compute Average Of Optimizations"):
-        metrics_df = calculate_metrics(folder_path, initial_margin, slippage_pct)
+        metrics_df = calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
         def calculate_componentwise_averages(metrics_df: pd.DataFrame) -> pd.DataFrame:
             df = metrics_df.copy()
 
@@ -416,6 +416,7 @@ def portfolios_driver():
     # Input parameters
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
     slippage_pct = st.number_input('Slippage Percentage', 0.0, 0.05, key='slippage')
+    slippage_points = st.number_input('Slippage Points', 0, 10000, key='slippage_points')
     
     
     selected_tradesheets = {}
@@ -475,7 +476,7 @@ def portfolios_driver():
             portfolio_df = pd.concat(all_dfs, ignore_index=True)
             portfolio_df['timestamp'] = pd.to_datetime(portfolio_df['timestamp'])
             portfolio_df = portfolio_df.sort_values(by='timestamp')
-            df_metrics, metrics = calc.calculate_metrics(portfolio_df, initial_margin, slippage_pct)
+            df_metrics, metrics = calc.calculate_metrics(portfolio_df, initial_margin, slippage_pct, slippage_points)
             st.write("Portfolio Metrics")
             st.dataframe([metrics])
             st.divider()
@@ -511,104 +512,105 @@ def strategy_driver():
     }
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
     slippage_pct = st.number_input('Slippage Percentage', 0.0, 0.05, key = 'slippage')
+    slippage_points = st.number_input('Slippage Points', 0, 10000, key='slippage_points')
 
     if selected_strat == 'PCCO_SPOT':
         folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
-        calculate_metrics(folder_path, initial_margin, slippage_pct)
-        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
         display_correlation_matrix(folder_path)
-        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
 
     elif selected_strat == 'PCCO_OPT':
         folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
-        calculate_metrics(folder_path, initial_margin, slippage_pct)
-        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
         display_correlation_matrix(folder_path)
-        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
     
     elif selected_strat == 'PRICEMA':
         folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
-        calculate_metrics(folder_path, initial_margin, slippage_pct)
-        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
         display_correlation_matrix(folder_path)
-        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
     
     elif selected_strat == 'PRICEMA_ATR':
         folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
-        calculate_metrics(folder_path, initial_margin, slippage_pct)
-        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
         display_correlation_matrix(folder_path)
-        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
     
     elif selected_strat == 'PRICEMA_TRAIL':
         folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
-        calculate_metrics(folder_path, initial_margin, slippage_pct)
-        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
         display_correlation_matrix(folder_path)
-        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
     
     elif selected_strat == 'IVIX':
         folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
-        calculate_metrics(folder_path, initial_margin, slippage_pct)
-        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
         display_correlation_matrix(folder_path)
-        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
     
     elif selected_strat == 'PRICEMACLOSEFILTER':
         folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
-        calculate_metrics(folder_path, initial_margin, slippage_pct)
-        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
         display_correlation_matrix(folder_path)
-        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
     
     elif selected_strat == 'VWAP':
         folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
-        calculate_metrics(folder_path, initial_margin, slippage_pct)
-        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
         display_correlation_matrix(folder_path)
-        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
     
     elif selected_strat == 'VWAPTRAIL':
         folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
-        calculate_metrics(folder_path, initial_margin, slippage_pct)
-        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
         display_correlation_matrix(folder_path)
-        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
     
     elif selected_strat == 'BOLLINGERSHORT':
         folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
-        calculate_metrics(folder_path, initial_margin, slippage_pct)
-        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
         display_correlation_matrix(folder_path)
-        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
 
     elif selected_strat == 'PRICEMABANDS':
         folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin, slippage_pct)
-        calculate_metrics(folder_path, initial_margin, slippage_pct)
-        display_multi_select_strats(folder_path, initial_margin, slippage_pct)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
         display_correlation_matrix(folder_path)
-        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
 
 
