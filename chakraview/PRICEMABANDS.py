@@ -136,6 +136,14 @@ class PRICEMA:
 
         return resampled_df.dropna()
 
+    def get_resampled_timestamp(self, date: datetime.date, time: datetime.time):
+        int_timeframe = int(self.timeframe)
+        timestamp = datetime.datetime.combine(date, time)
+        timestamp_offset = int_timeframe - 1
+        adjusted_timestamp = timestamp + datetime.timedelta(minutes=timestamp_offset)
+        adjusted_time = adjusted_timestamp.time()
+        return adjusted_time
+
     def gen_signals(self):
         signals_list = []
         commodities_underlying = None
@@ -158,8 +166,9 @@ class PRICEMA:
             new_day = self.check_new_day(self.row.timestamp.date())
             #ENTRY
             if self.row.c > self.row.upperband:
+                adjusted_timestamp = self.get_resampled_timestamp(self.row.date, self.row.time)
                 if self.in_position == -1:
-                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), self.row.timestamp.time())
+                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), adjusted_timestamp)
                     self.exit_price = self.tick.get('c') if self.tick else np.nan
                     self.exit_trade = 'COVER'
                     self.entry_price = self.exit_price
@@ -190,7 +199,7 @@ class PRICEMA:
                     )
 
                 elif self.in_position != 1:
-                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), self.row.timestamp.time())
+                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), adjusted_timestamp)
                     self.entry_price = self.tick.get('c') if self.tick else np.nan
                     self.entry_trade = 'BUY'
                     self.in_position = 1
@@ -208,8 +217,9 @@ class PRICEMA:
                     )
 
             if self.row.c < self.row.lowerband:
+                adjusted_timestamp = self.get_resampled_timestamp(self.row.date, self.row.time)
                 if self.in_position == 1:
-                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), self.row.timestamp.time())
+                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), adjusted_timestamp)
                     self.exit_price = self.tick.get('c') if self.tick else np.nan
                     self.exit_trade = 'SELL'
                     self.entry_price = self.exit_price
@@ -239,7 +249,7 @@ class PRICEMA:
                     )
 
                 elif self.in_position != -1:
-                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), self.row.timestamp.time())
+                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), adjusted_timestamp)
                     self.entry_price = self.tick.get('c') if self.tick else np.nan
                     self.entry_trade = 'SHORT'
                     self.in_position = -1
