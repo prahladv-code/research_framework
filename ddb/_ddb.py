@@ -1,13 +1,16 @@
 import duckdb
 import pandas as pd
-
-
+from chakraview.chakraview import ChakraView
+import numpy as np
+import datetime
+from chakraview.config import strike_diff
 class Ddb:
     def __init__(self, db_path: str):
         """
         Create and process DuckDB database for historical data processing.
         """
         self.conn = duckdb.connect(db_path)
+        self.ck = ChakraView()
 
     def process_daily_tables(self, df, db_name: str):
         """
@@ -95,5 +98,27 @@ class Ddb:
             self.conn.execute(f"""INSERT INTO "{db_name}" SELECT * FROM df_temp""")
         
         self.conn.unregister('df_temp')
+    
+    def generate_straddle_df(self, underlying: str, expiry_code: int):
+        spot_df = self.ck.get_spot_df(underlying)
+        spot_df = spot_df.sort_values(by=['date', 'time']).reset_index(drop=True)
+
+        def get_straddle_price(row):
+            date = row['date']
+            time = row['time']
+            underlying_price = row['c']
+            call_tick = self.ck.find_ticker_by_moneyness(underlying, expiry_code, date, time, underlying_price, strike_diff.get(underlying), 'CE', 0)
+            put_tick = self.ck.find_ticker_by_moneyness(underlying, expiry_code, date, time, underlying_price, strike_diff.get(underlying), 'PE', 0)
+            if call_tick and put_tick:
+                call_price = call_tick['c']
+                put_price = put_tick['c']
+                straddle_price = call_price + put_price
+                return straddle_price
+            else:
+                return np.nan
+            
+        spot_df['straddle_price'] = spot_df.apply(get_straddle_price, axis=1)
+        spot_df['straddle_price'] = spot_df['straddle_price'].ffill()
+        return spot_df
         
     
