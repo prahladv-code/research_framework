@@ -7,15 +7,12 @@ import logging
 from scipy.stats import norm
 from chakraview.config import db_paths
 import re
-from chakraview.config import continuous_codes
-
+from chakraview.config import continuous_codes, strike_diff, lot_sizes
+from chakraview.logger import logger
 class ChakraView:
     def __init__(self):
-        self.daily_tb = duckdb.connect(r"C:\Users\Admin\Desktop\db\historical_db.ddb", read_only=True)
-        logging.basicConfig(filename=r'./ck_logger.log',
-                                       level = logging.INFO,
-                                       format="%(asctime)s [%(levelname)s] %(message)s")
-        self.log = logging.getLogger(self.__class__.__name__)
+        self.daily_tb = duckdb.connect(r"C:\Users\Admin\Desktop\db\historical_db.ddb")
+        self.log = logger
     
     
     def calculate_expiry_from_expiry_code(self, df: pd.DataFrame, expiry_code: int):
@@ -153,7 +150,6 @@ class ChakraView:
             return {}
     
     def get_all_ticks_by_timestamp(self, underlying: str, expiry_code: int, date: datetime.date, time: datetime.time):
-        start = t.time()
         date_str = date.strftime('%Y-%m-%d')
         time_str = time.strftime('%H:%M:%S')
         self.all_tick_query = f"""
@@ -164,7 +160,7 @@ class ChakraView:
             df_filtered = df[(df['underlying'] == underlying)]
             expiry = self.calculate_expiry_from_expiry_code(df_filtered, expiry_code)
         except Exception as e:
-            print(f'Error In Fetching Data For {date}: {e}')
+            self.log.error(f'Error In Fetching Data For {date}: {e}')
             return pd.DataFrame()
 
         if expiry is None:
@@ -173,8 +169,6 @@ class ChakraView:
 
         all_ticks_by_timestamp_df = df_filtered[df_filtered['expiry'] == expiry]
         all_ticks_by_timestamp_df = all_ticks_by_timestamp_df.reset_index(drop=True)
-        end = t.time()
-        print(f'Elapsed Time In Getting All Ticks: {end-start}')
         return all_ticks_by_timestamp_df
     
     def get_strike_by_moneyness(self, underlying_price, strike_difference, moneyness, right):
@@ -212,7 +206,6 @@ class ChakraView:
 
 
     def find_ticker_by_moneyness(self, underlying: str, expiry_code: int, date: datetime.date, time: datetime.time, underlying_price, strike_difference, right, moneyness):
-        start = t.time()
         all_timestamp_df = self.get_all_ticks_by_timestamp(underlying, expiry_code, date, time)
         if all_timestamp_df.empty:
             self.log.error(f"Empty timestamp DF | {date} {time}")
@@ -223,8 +216,6 @@ class ChakraView:
             self.log.error(f'No Data For TimeStamp: {date} {time}')
             return {}
         moneyness_dict = moneyness_df.to_dict(orient='records')
-        end=t.time()
-        print(f'Elapsed Time In Getting Moneyness Details: {end-start}')
         return moneyness_dict[0]
 
     def find_ticker_by_premium(self, underlying: str, expiry_code: int, date, time, underlying_price, right, premium_val, atm_filter=False):
@@ -436,5 +427,6 @@ class ChakraView:
             'trade': trade,
             'system_action': system_action
         }
+
 
 
