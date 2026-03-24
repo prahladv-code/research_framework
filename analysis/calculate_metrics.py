@@ -128,8 +128,8 @@ class CalculateMetrics:
     def calculate_metrics(self, df, initial_margin, slippage_pct, slippage_points: float = None):
         df = df[df['P/L'].notna()].copy()
         df['timestamp'] = pd.to_datetime(df['timestamp'])
-
-        if slippage_points is not None:
+        slippage = 0
+        if slippage_points > 0:
             slippage = slippage_points
         else:
             slippage = df['cv'] * slippage_pct
@@ -216,8 +216,9 @@ class CalculateMetrics:
         for file in portfolio_list:
             portfolio_df = pd.read_parquet(folder_path + file + '.parquet')
             portfolio_df['date'] = pd.to_datetime(portfolio_df['timestamp']).dt.date
-            if slippage_points is not None:
-                slippage = portfolio_df['P/L'] - slippage
+            slippage = 0
+            if slippage_points > 0:
+                slippage = slippage_points
             else:
                 slippage = portfolio_df['cv'] * slippage_pct
             
