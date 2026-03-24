@@ -11,7 +11,7 @@ from chakraview.config import continuous_codes, strike_diff, lot_sizes
 from chakraview.logger import logger
 class ChakraView:
     def __init__(self):
-        self.daily_tb = duckdb.connect(r"C:\Users\Admin\Desktop\db\historical_db.ddb")
+        self.daily_tb = duckdb.connect(r"C:\Users\Admin\Desktop\db\historical_db.ddb", read_only=True)
         self.log = logger
     
     
@@ -149,6 +149,51 @@ class ChakraView:
             print(f'Error In Retrieving Tick: {e}')
             return {}
     
+    def get_spot_tick(
+                        self,
+                        underlying: str,
+                        date: datetime.date,
+                        time: datetime.time
+                    ):
+        db_name = underlying
+
+        date_str = date.strftime('%Y-%m-%d')
+        time_str = time.strftime('%H:%M:%S')
+
+        # 1️⃣ exact match first
+        exact_query = f"""
+            SELECT *
+            FROM "{db_name}"
+            WHERE date = '{date_str}'
+            AND time = '{time_str}'
+            LIMIT 1
+        """
+
+        try:
+            df = self.daily_tb.execute(exact_query).fetch_df()
+            if not df.empty:
+                return df.iloc[0].to_dict()
+
+            # 2️⃣ fallback: nearest tick BEFORE timestamp (no lookahead)
+            fallback_query = f"""
+                                SELECT *
+                                FROM "{db_name}"
+                                WHERE date = '{date_str}'
+                                AND time < '{time_str}'
+                                ORDER BY time DESC
+                                LIMIT 3
+                            """
+
+            df = self.daily_tb.execute(fallback_query).fetch_df()
+            if not df.empty:
+                return df.iloc[0].to_dict()
+
+            return {}
+
+        except Exception as e:
+            print(f'No Data Returned For {date_str} {time_str} | {e}')
+            return {}
+
     def get_all_ticks_by_timestamp(self, underlying: str, expiry_code: int, date: datetime.date, time: datetime.time):
         date_str = date.strftime('%Y-%m-%d')
         time_str = time.strftime('%H:%M:%S')
