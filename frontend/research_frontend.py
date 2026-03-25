@@ -420,7 +420,11 @@ def portfolios_driver():
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
     slippage_pct = st.number_input('Slippage Percentage', 0.0, 0.05, key='slippage')
     slippage_points = st.number_input('Slippage Points', 0, 10000, key='slippage_points')
-    
+    start_date = st.date_input(
+    "Equity Curve Start Date",
+    value=None,  # default = no filter
+    key="start_date"
+    )
     
     selected_tradesheets = {}
     selected_weights = {}
@@ -479,6 +483,9 @@ def portfolios_driver():
             portfolio_df = pd.concat(all_dfs, ignore_index=True)
             portfolio_df['timestamp'] = pd.to_datetime(portfolio_df['timestamp'])
             portfolio_df = portfolio_df.sort_values(by='timestamp')
+            # Apply start date filter if selected
+            if start_date:
+                portfolio_df = portfolio_df[portfolio_df['timestamp'].dt.date >= start_date]
             df_metrics, metrics = calc.calculate_metrics(portfolio_df, initial_margin, slippage_pct, slippage_points)
             st.write("Portfolio Metrics")
             st.dataframe([metrics])
