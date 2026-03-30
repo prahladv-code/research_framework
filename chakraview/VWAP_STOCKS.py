@@ -10,8 +10,8 @@ from chakraview.logger import logger
 class VWAP(ChakraView):
     def __init__(self):
         super().__init__()
-        self.entry_condition_time = datetime.time(9, 16, 0)
-        self.exit_condition_time = datetime.time(15, 27, 0)
+        self.entry_condition_time = datetime.time(9, 15, 0)
+        self.exit_condition_time = datetime.time(15, 25, 0)
         self.signal_list = []
         self.calc = CalculateMetrics()
         self.new_day = None
@@ -23,16 +23,95 @@ class VWAP(ChakraView):
         self.strat = uid_split.pop(0)
         self.underlying = uid_split.pop(0)
         self.timeframe = uid_split.pop(0)
-    
+        self.supertrend_period = int(uid_split.pop(0))
+        self.multiplier = int(uid_split.pop(0))
+        
+        
     def calculate_vwap(self, df):
-        """Calculate VWAP For Iterable DataFrame"""
-        df['fair_price'] = (df['h'] + df['l'] + df['c'])/3
-        df['total_volume'] = df['v'].cumsum()
+        """Calculate VWAP per trading session (per day)"""
+        df['fair_price'] = (df['h'] + df['l'] + df['c']) / 3
         df['weighted_price'] = df['fair_price'] * df['v']
-        df['total_weighted_price'] = df['weighted_price'].cumsum()
-        df['vwap'] = df['total_weighted_price']/df['total_volume']
+        # ✅ Per-day cumulative sums
+        df['cum_volume'] = df.groupby('date')['v'].cumsum()
+        df['cum_weighted_price'] = df.groupby('date')['weighted_price'].cumsum()
+        df['vwap'] = df['cum_weighted_price'] / df['cum_volume']
+        
         return df
     
+    def calculate_supertrend(self, db):
+        """
+        Calculates Supertrend across ALL dates in db (for proper lookback continuity).
+        db must be sorted by timestamp before calling.
+        """
+        try:
+            df = db.copy()
+            
+            prev_close = df['c'].shift(1)
+            tr = np.maximum.reduce([
+                df['h'] - df['l'],
+                (df['h'] - prev_close).abs(),
+                (df['l'] - prev_close).abs()
+            ])
+            
+            atr = pd.Series(tr).rolling(self.supertrend_period).mean().to_numpy()
+            hl2 = ((df['h'] + df['l']) / 2).to_numpy()
+            
+            basic_upper = hl2 + self.multiplier * atr
+            basic_lower = hl2 - self.multiplier * atr
+            
+            close = df['c'].to_numpy()
+            n = len(df)
+            
+            final_upper = np.full(n, np.nan)
+            final_lower = np.full(n, np.nan)
+            supertrend = np.full(n, np.nan)
+            trend = np.full(n, 0)
+            
+            valid_indices = np.where(~np.isnan(atr))[0]
+            if len(valid_indices) == 0:
+                print('Not enough data to calculate Supertrend.')
+                return pd.DataFrame()
+
+            start = valid_indices[0]
+            
+            final_upper[start] = basic_upper[start]
+            final_lower[start] = basic_lower[start]
+            
+            if close[start] <= final_upper[start]:
+                trend[start] = -1
+                supertrend[start] = final_upper[start]
+            else:
+                trend[start] = 1
+                supertrend[start] = final_lower[start]
+            
+            for i in range(start + 1, n):
+                if basic_upper[i] < final_upper[i-1] or close[i-1] > final_upper[i-1]:
+                    final_upper[i] = basic_upper[i]
+                else:
+                    final_upper[i] = final_upper[i-1]
+                
+                if basic_lower[i] > final_lower[i-1] or close[i-1] < final_lower[i-1]:
+                    final_lower[i] = basic_lower[i]
+                else:
+                    final_lower[i] = final_lower[i-1]
+                
+                if trend[i-1] == 1:
+                    trend[i] = -1 if close[i] <= final_lower[i] else 1
+                else:
+                    trend[i] = 1 if close[i] >= final_upper[i] else -1
+                
+                supertrend[i] = final_lower[i] if trend[i] == 1 else final_upper[i]
+            
+            df['final_upper'] = final_upper
+            df['final_lower'] = final_lower
+            df['supertrend'] = supertrend
+            df['trend'] = trend
+            return df
+
+        except Exception as e:
+            print(f'Error In Calculating Supertrend: {e}')
+            return pd.DataFrame()
+
     def check_newday(self, date):
         if date == self.new_day:
             return False
@@ -96,80 +175,109 @@ class VWAP(ChakraView):
 
         if self.entry_condition_time <= vwap_row.time < self.exit_condition_time:
             if vwap_row.c > vwap_row.vwap:
-                if self.in_position == -1:                                
-                    current_timestamp = f'{vwap_row.date} {vwap_row.time}'
-                    logger.info(f'VWAP SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
-                    if self.entry_symbol:
-                        exit_tick = vwap_row.c
-                        exit_signal = self.place_trade(current_timestamp, self.entry_symbol, exit_tick, 1, 1*exit_tick, 'COVER', 'EXIT_SHORT')
-                        self.signal_list.append(exit_signal)
-                        self.in_position = 0
-                    else:
-                        logger.warning(f'Symbol Is Empty. Skipping.')
-                        self.in_position = 0
-                
-                    logger.info(f'VWAP LONG ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
-                    self.entry_symbol = self.underlying
-                    if self.entry_symbol:
-                        entry_tick = vwap_row.c
-                        entry_signal = self.place_trade(current_timestamp, self.entry_symbol, entry_tick, 1, 1*entry_tick, "BUY", "ENTRY_LONG")
-                        self.in_position = 1
-                        self.signal_list.append(entry_signal)
-                    else:
-                        logger.warning(f'Symbol Is Empty. Skipping.')
-                        self.in_position = 0
+                if vwap_row.c > vwap_row.supertrend:
+                    if self.in_position == -1:                                
+                        current_timestamp = f'{vwap_row.date} {vwap_row.time}'
+                        logger.info(f'VWAP SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
+                        if self.entry_symbol:
+                            exit_tick = vwap_row.c
+                            exit_signal = self.place_trade(current_timestamp, self.entry_symbol, exit_tick, 5, 5*exit_tick, 'COVER', 'EXIT_SHORT')
+                            self.signal_list.append(exit_signal)
+                            self.in_position = 0
+                        else:
+                            logger.warning(f'Symbol Is Empty. Skipping.')
+                            self.in_position = 0
+                    
+                        logger.info(f'VWAP LONG ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
+                        self.entry_symbol = self.underlying
+                        if self.entry_symbol:
+                            entry_tick = vwap_row.c
+                            entry_signal = self.place_trade(current_timestamp, self.entry_symbol, entry_tick, 5, 5*entry_tick, "BUY", "ENTRY_LONG")
+                            self.in_position = 1
+                            self.signal_list.append(entry_signal)
+                        else:
+                            logger.warning(f'Symbol Is Empty. Skipping.')
+                            self.in_position = 0
 
-                elif self.in_position == 0:
-                    logger.info(f'VWAP LONG ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
-                    current_timestamp = f'{vwap_row.date} {vwap_row.time}'
-                    self.entry_symbol = self.underlying
-                    if self.entry_symbol:
-                        entry_tick = vwap_row.c
-                        entry_signal = self.place_trade(current_timestamp, self.entry_symbol, entry_tick, 1, 1*entry_tick, "BUY", "ENTRY_LONG")
-                        self.in_position = 1
-                        self.signal_list.append(entry_signal)
-                    else:
-                        logger.warning(f'Symbol Is Empty. Skipping.')
-                        self.in_position = 0
+                    elif self.in_position == 0:
+                        logger.info(f'VWAP LONG ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
+                        current_timestamp = f'{vwap_row.date} {vwap_row.time}'
+                        self.entry_symbol = self.underlying
+                        if self.entry_symbol:
+                            entry_tick = vwap_row.c
+                            entry_signal = self.place_trade(current_timestamp, self.entry_symbol, entry_tick, 5, 5*entry_tick, "BUY", "ENTRY_LONG")
+                            self.in_position = 1
+                            self.signal_list.append(entry_signal)
+                        else:
+                            logger.warning(f'Symbol Is Empty. Skipping.')
+                            self.in_position = 0
+
+                if vwap_row.c < vwap_row.supertrend:
+                    if self.in_position == 1:
+                        current_timestamp = f"{vwap_row.date} {vwap_row.time}"
+                        print(f'VWAP LONG EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
+                        if self.entry_symbol:
+                            exit_tick = vwap_row.c
+                            exit_signal = self.place_trade(current_timestamp, self.entry_symbol, exit_tick, 5, 5*exit_tick, 'SELL', 'EXIT_LONG')
+                            self.signal_list.append(exit_signal)
+                            self.in_position = 0
+                        else:
+                            print(f'Symbol Is Empty. Skipping.')
+                            self.in_position = 0
+   
             
             if vwap_row.c < vwap_row.vwap:
-                if self.in_position == 1:
-                    current_timestamp = f'{vwap_row.date} {vwap_row.time}'
-                    logger.info(f'VWAP LONG EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
-                    if self.entry_symbol:
-                        exit_tick = vwap_row.c
-                        exit_signal = self.place_trade(current_timestamp, self.entry_symbol, exit_tick, 1, 1*exit_tick, 'SELL', 'EXIT_LONG')
-                        self.signal_list.append(exit_signal)
-                        self.in_position = 0
-                    else:
-                        logger.warning(f'Symbol Is Empty. Skipping.')
-                        self.in_position = 0
-                
-                    logger.info(f'VWAP SHORT ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
-                    self.entry_symbol = self.underlying
-                    if self.entry_symbol:
-                        entry_tick = vwap_row.c
-                        entry_signal = self.place_trade(current_timestamp, self.entry_symbol, entry_tick, 1, 1*entry_tick, "SHORT", "ENTRY_SHORT")
-                        self.in_position = -1
-                        
-                        self.signal_list.append(entry_signal)
-                    else:
-                        logger.warning(f'Symbol Is Empty. Skipping.')
-                        self.in_position = 0
+                if vwap_row.c < vwap_row.supertrend:
+                    if self.in_position == 1:
+                        current_timestamp = f'{vwap_row.date} {vwap_row.time}'
+                        logger.info(f'VWAP LONG EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
+                        if self.entry_symbol:
+                            exit_tick = vwap_row.c
+                            exit_signal = self.place_trade(current_timestamp, self.entry_symbol, exit_tick, 5, 5*exit_tick, 'SELL', 'EXIT_LONG')
+                            self.signal_list.append(exit_signal)
+                            self.in_position = 0
+                        else:
+                            logger.warning(f'Symbol Is Empty. Skipping.')
+                            self.in_position = 0
+                    
+                        logger.info(f'VWAP SHORT ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
+                        self.entry_symbol = self.underlying
+                        if self.entry_symbol:
+                            entry_tick = vwap_row.c
+                            entry_signal = self.place_trade(current_timestamp, self.entry_symbol, entry_tick, 5, 5*entry_tick, "SHORT", "ENTRY_SHORT")
+                            self.in_position = -1
+                            
+                            self.signal_list.append(entry_signal)
+                        else:
+                            logger.warning(f'Symbol Is Empty. Skipping.')
+                            self.in_position = 0
 
-                elif self.in_position == 0:
-                    logger.info(f'VWAP SHORT ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
-                    current_timestamp = f'{vwap_row.date} {vwap_row.time}'
-                    self.entry_symbol = self.underlying
-                    if self.entry_symbol:
-                        entry_tick = vwap_row.c
-                        entry_signal = self.place_trade(current_timestamp, self.entry_symbol, entry_tick, 1, 1*entry_tick, "SHORT", "ENTRY_SHORT")
-                        self.in_position = -1
-                        
-                        self.signal_list.append(entry_signal)
-                    else:
-                        logger.warning(f'Symbol Is Empty. Skipping.')
-                        self.in_position = 0
+                    elif self.in_position == 0:
+                        logger.info(f'VWAP SHORT ENTRY SIGNAL FOUND AT {vwap_row.date} {vwap_row.time}')
+                        current_timestamp = f'{vwap_row.date} {vwap_row.time}'
+                        self.entry_symbol = self.underlying
+                        if self.entry_symbol:
+                            entry_tick = vwap_row.c
+                            entry_signal = self.place_trade(current_timestamp, self.entry_symbol, entry_tick, 5, 5*entry_tick, "SHORT", "ENTRY_SHORT")
+                            self.in_position = -1
+                            
+                            self.signal_list.append(entry_signal)
+                        else:
+                            logger.warning(f'Symbol Is Empty. Skipping.')
+                            self.in_position = 0
+                
+                if vwap_row.c > vwap_row.supertrend:
+                    if self.in_position == -1:
+                        current_timestamp = f"{vwap_row.date} {vwap_row.time}"
+                        print(f'VWAP SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
+                        if self.entry_symbol:
+                            exit_tick = vwap_row.c
+                            exit_signal = self.place_trade(current_timestamp, self.entry_symbol, exit_tick, 5, 5*exit_tick, 'COVER', 'EXIT_SHORT')
+                            self.signal_list.append(exit_signal)
+                            self.in_position = 0
+                        else:
+                            print(f'Symbol Is Empty. Skipping.')
+                            self.in_position = 0
 
         if vwap_row.time >= self.exit_condition_time:
             current_timestamp = f'{vwap_row.date} {vwap_row.time}'
@@ -177,7 +285,7 @@ class VWAP(ChakraView):
                 logger.info(f'VWAP SHORT EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
                 if self.entry_symbol:
                     exit_tick = vwap_row.c
-                    exit_signal = self.place_trade(current_timestamp, self.entry_symbol, exit_tick, 1, 1*exit_tick, 'COVER', 'EXIT_SHORT')
+                    exit_signal = self.place_trade(current_timestamp, self.entry_symbol, exit_tick, 5, 5*exit_tick, 'COVER', 'EXIT_SHORT')
                     self.signal_list.append(exit_signal)
                     self.in_position = 0
                 else:
@@ -188,7 +296,7 @@ class VWAP(ChakraView):
                 logger.info(f'VWAP LONG EXIT FOUND AT {vwap_row.date} {vwap_row.time}')
                 if self.entry_symbol:
                     exit_tick = vwap_row.c
-                    exit_signal = self.place_trade(current_timestamp, self.entry_symbol, exit_tick, 1, 1*exit_tick, 'SELL', 'EXIT_LONG')
+                    exit_signal = self.place_trade(current_timestamp, self.entry_symbol, exit_tick, 5, 5*exit_tick, 'SELL', 'EXIT_LONG')
                     self.signal_list.append(exit_signal)
                     self.in_position = 0
                 else:
@@ -201,7 +309,8 @@ class VWAP(ChakraView):
             stock_df = self.get_spot_df(self.underlying)
             resampled_df = self.resample_df(stock_df)
             vwap_df = self.calculate_vwap(resampled_df)
-            iterable = self.create_itertuples(vwap_df)
+            supertrend_df = self.calculate_supertrend(vwap_df)
+            iterable = self.create_itertuples(supertrend_df)
             for row in iterable:
                 self.gen_signals(row)
             
