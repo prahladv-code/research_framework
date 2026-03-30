@@ -121,14 +121,13 @@ class ChakraView:
             return {}
 
         except Exception as e:
-            print(f'No Data Returned For {date_str} {time_str} | {e}')
+            self.log.error(f'No Data Returned For {date_str} {time_str} | {e}')
             return {}
 
 
 
     def get_tick(self, symbol: str, date: datetime.date, time: datetime.time):
         try:
-            start = t.time()
             date_str = date.strftime('%Y-%m-%d')
             time_str = time.strftime('%H:%M:%S')
             self.tick_query = f"""
@@ -142,11 +141,9 @@ class ChakraView:
                 return {}
             
             tick_dict = df_filtered.to_dict(orient = 'records')
-            end = t.time()
-            print(f'Elapsed Time In Getting Tick: {end-start}')
             return tick_dict[0]
         except Exception as e:
-            print(f'Error In Retrieving Tick: {e}')
+            self.log.error(f'Error In Retrieving Tick: {e}')
             return {}
     
     def get_spot_tick(
@@ -192,7 +189,7 @@ class ChakraView:
             return {}
 
         except Exception as e:
-            print(f'No Data Returned For {date_str} {time_str} | {e}')
+            self.log.error(f'No Data Returned For {date_str} {time_str} | {e}')
             return {}
 
     def get_all_ticks_by_timestamp(self, underlying: str, expiry_code: int, date: datetime.date, time: datetime.time):
@@ -244,10 +241,10 @@ class ChakraView:
                 symbol_df = all_ticks_df[all_ticks_df['symbol'] == symbol]
                 return symbol_df
             except Exception as e:
-                print(f'Error In Fetching All Ticks By Symbol: {e}')
+                self.log.error(f'Error In Fetching All Ticks By Symbol: {e}')
                 return
         else:
-            print(f'Invalid Expiry Found For {symbol}')
+            self.log.warning(f'Invalid Expiry Found For {symbol}')
             return
 
 
@@ -265,7 +262,6 @@ class ChakraView:
         return moneyness_dict[0]
 
     def find_ticker_by_premium(self, underlying: str, expiry_code: int, date, time, underlying_price, right, premium_val, atm_filter=False):
-        start = t.time()
 
         all_timestamp_df = self.get_all_ticks_by_timestamp(underlying, expiry_code, date, time)
         option_chain = all_timestamp_df[all_timestamp_df['right'] == right.upper()].copy()
@@ -277,8 +273,6 @@ class ChakraView:
         option_chain['premium_diff'] = abs(option_chain['c'] - premium_val)
         min_row = option_chain.loc[option_chain['premium_diff'].idxmin()]
         min_row_dict = min_row.to_dict()
-        end = t.time()
-        print(f'Elapsed Time In Getting Premium Details: {end-start}')
         return min_row_dict
         
     def find_ticker_by_delta(self, underlying: str, date: datetime.date, time: datetime.time, delta: float, right: str, expiry_code: int):
