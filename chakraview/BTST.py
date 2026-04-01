@@ -23,7 +23,18 @@ class BTST(ChakraView):
         if date != self.new_day:
             self.new_day = date
             return True
+    
+    def get_resampled_tick(self, date: datetime.date, time: datetime.time):
+        timestamp_offset = self.timeframe - 1
+        base_dt = datetime.datetime.combine(date, time)
+
+        if time == datetime.time(15, 5):
+            adjusted_timestamp = base_dt + datetime.timedelta(minutes=24)
+        else:
+            adjusted_timestamp = base_dt + datetime.timedelta(minutes = timestamp_offset)
         
+        return adjusted_timestamp.time()
+    
 
     def reset_all_variables(self):
         self.in_position = 0
