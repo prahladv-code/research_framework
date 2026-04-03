@@ -56,6 +56,7 @@ class ChakraView:
         df = self.daily_tb.execute(f"SELECT * FROM {underlying}").fetch_df()
         df['date'] = pd.to_datetime(df['date'], format='%Y-%m-%d').dt.date
         df['time'] = pd.to_datetime(df['time'], format='%H:%M:%S').dt.time
+        df = df.sort_values(by=['date', 'time']).reset_index(drop=True)
         return df
     
 

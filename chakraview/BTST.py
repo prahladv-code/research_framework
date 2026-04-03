@@ -24,31 +24,29 @@ class BTST(ChakraView):
             self.new_day = date
             return True
     
-    def get_resampled_tick(self, date: datetime.date, time: datetime.time):
-        timestamp_offset = self.timeframe - 1
-        base_dt = datetime.datetime.combine(date, time)
+    def get_delay_timestamp(self, date: datetime.date):
 
-        if time == datetime.time(15, 5):
-            adjusted_timestamp = base_dt + datetime.timedelta(minutes=24)
-        else:
-            adjusted_timestamp = base_dt + datetime.timedelta(minutes = timestamp_offset)
-        
+        base_dt = datetime.datetime.combine(date, datetime.time(9, 15, 0))
+        adjusted_timestamp = base_dt + datetime.timedelta(minutes=self.delay)
+        self.logger.debug(f'ADJUSTED TIMESTAMP DEBUG: {adjusted_timestamp}')
         return adjusted_timestamp.time()
     
 
     def reset_all_variables(self):
         self.in_position = 0
         self.entry_symbol = None
+        self.expiry = None
     
+    # 'BTST_NIFTY_1_180_0.5_0_0'
     def set_params_from_uid(self, uid: str):
         uid_split = uid.split('_')
         self.strat = uid_split.pop(0)
         self.underlying = uid_split.pop(0)
         self.timeframe = uid_split.pop(0)
-        self.multiplier = int(uid_split.pop(0))
-        self.fut_expiry_code = uid_split.pop(0)
-        self.expiry_code = int(uid_split.pop(0))
+        self.delay = int(uid_split.pop(0))
+        self.percentage_criteria = float(uid_split.pop(0))
         self.moneyness = int(uid_split.pop(0))
+        self.expiry_code = int(uid_split.pop(0))
         self.qty = lot_sizes.get(self.underlying)
         self.strike_diff = strike_diff.get(self.underlying)
         self.start = sessions.get(self.underlying).get('start')
@@ -99,52 +97,70 @@ class BTST(ChakraView):
 
         return resampled_df.dropna()
     
-    def calculate_vwap(self, db: pd.DataFrame) -> pd.DataFrame:
-        multiplier = self.multiplier
-        """Calculate VWAP per trading session (per day)"""
-        db['fair_price'] = (db['h'] + db['l'] + db['c']) / 3
-        db['weighted_price'] = db['fair_price'] * db['v']
-        # ✅ Per-day cumulative sums
-        db['cum_volume'] = db.groupby('date')['v'].cumsum()
-        db['cum_weighted_price'] = db.groupby('date')['weighted_price'].cumsum()
-        db['vwap'] = db['cum_weighted_price'] / db['cum_volume']
-        db['vwap_std'] = db.groupby('date')['vwap'].expanding().std().reset_index(level=0, drop=True)
-        db['upperband'] = db['vwap'] + multiplier * db['vwap_std']
-        db['lowerband'] = db['vwap'] - multiplier * db['vwap_std']
-        return db
+    def calculate_percentage_change(self, row):
+        base_time = self.get_delay_timestamp(row.date)
+        base_tick = self.get_spot_tick(self.underlying, 0, row.date, base_time)
+        if base_tick:
+            base_price = base_tick['c']
+            compare_price = row.c
+            percentage_change = (compare_price - base_price)/base_price * 100
+            self.logger.debug(f'BASE PRICE : {base_price} | COMPARE PRICE: {compare_price} | PERCENTAGE CHANGE: {percentage_change}')
+            return percentage_change
+        else:
+            self.logger.info(f'NO SPOT TICK FOUND FOR {row.date} {row.time}')
+            return None
+
 
     def gen_signals(self, row):
         
+        adjusted_expiry_code = 0
         new_day = self.check_new_day(row.date)
+
+        if self.expiry:
+            if self.expiry_code == 0:
+                if row.date == self.expiry:
+                    adjusted_expiry_code = self.expiry_code + 1
+        else:
+            adjusted_expiry_code = self.expiry_code
 
         #ENTRY
         if row.time == datetime.time(15, 28):
             if self.in_position == 0:
-                if row.c > row.upperband:
-                    current_timestamp = f'{row.date} {row.time}'
-                    self.logger.info(f'BTST LONG SIGNAL FOUND AT {row.date} {row.time}')
-                    entry_tick = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, row.time, row.c, self.strike_diff, 'CE', self.moneyness)
-                    if entry_tick:
-                        self.entry_symbol = entry_tick.get('symbol')
-                        entry_price = entry_tick.get('c')
-                        entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'BUY', 'LONG_ENTRY')
-                        self.signal_list.append(entry_trade)
-                        self.in_position = 1
-                    else:
-                        self.logger.warning(f"Entry Call Tick Returned None At {row.date} {row.time}")
+                percentage_change = self.calculate_percentage_change(row)
+                if percentage_change:
+                    negative_percentage = 0 - self.percentage_criteria
+                    if percentage_change >= self.percentage_criteria:
+                        current_timestamp = f'{row.date} {row.time}'
+                        self.logger.info(f'BTST LONG SIGNAL FOUND AT {row.date} {row.time}')
+                        entry_tick = self.find_ticker_by_moneyness(self.underlying, adjusted_expiry_code, row.date, row.time, row.c, self.strike_diff, 'CE', self.moneyness)
+                        if entry_tick:
+                            self.entry_symbol = entry_tick.get('symbol')
+                            self.expiry = entry_tick['expiry'].date()
+                            entry_price = entry_tick.get('c')
+                            entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'BUY', 'LONG_ENTRY')
+                            self.signal_list.append(entry_trade)
+                            self.in_position = 1
+                        else:
+                            self.logger.warning(f"Entry Call Tick Returned None At {row.date} {row.time}")
+                            self.reset_all_variables()
                 
-                elif row.c < row.lowerband:
-                    current_timestamp = f'{row.date} {row.time}'
-                    self.logger.info(f'BTST SHORT SIGNAL FOUND AT {row.date} {row.time}')
-                    entry_tick = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, row.time, row.c, self.strike_diff, 'PE', self.moneyness)
-                    if entry_tick:
-                        self.entry_symbol = entry_tick.get('symbol')
-                        entry_price = entry_tick.get('c')
-                        entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'BUY', 'LONG_ENTRY')
-                        self.signal_list.append(entry_trade)
-                        self.in_position = -1
-                    else:
-                        self.logger.warning(f"Entry Put Tick Returned None At {row.date} {row.time}")
+                    elif percentage_change <= negative_percentage:
+                        current_timestamp = f'{row.date} {row.time}'
+                        self.logger.info(f'BTST SHORT SIGNAL FOUND AT {row.date} {row.time}')
+                        entry_tick = self.find_ticker_by_moneyness(self.underlying, adjusted_expiry_code, row.date, row.time, row.c, self.strike_diff, 'PE', self.moneyness)
+                        if entry_tick:
+                            self.entry_symbol = entry_tick.get('symbol')
+                            self.expiry = entry_tick['expiry']
+                            entry_price = entry_tick.get('c')
+                            entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'BUY', 'LONG_ENTRY')
+                            self.signal_list.append(entry_trade)
+                            self.in_position = -1
+                        else:
+                            self.logger.warning(f"Entry Put Tick Returned None At {row.date} {row.time}")
+                            self.reset_all_variables()
+                else:
+                    self.logger.warning("Percentage Change Found Empty. Skipping.")
+                    self.reset_all_variables()
         
         if new_day:
             if row.time == datetime.time(9, 15, 0):
@@ -176,11 +192,10 @@ class BTST(ChakraView):
         
     def run_backtest(self, uid: str):
         self.set_params_from_uid(uid)
-        spot_df = self.get_fut_df(self.underlying, self.fut_expiry_code)
+        spot_df = self.get_spot_df(self.underlying)
+        spot_df = spot_df[(spot_df['time'] >= self.start) & (spot_df['time'] <= self.end)].copy()
         spot_df = spot_df.sort_values(by=['date', 'time']).reset_index(drop=True)
-        resampled_df = self.resample_df(spot_df)
-        vwap_df = self.calculate_vwap(resampled_df)
-        iterable = self.create_itertuples(vwap_df)
+        iterable = self.create_itertuples(spot_df)
         for row in iterable:
             self.gen_signals(row)
         

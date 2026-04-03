@@ -1,0 +1,284 @@
+from chakraview.chakraview import ChakraView
+import datetime
+import pandas as pd
+from chakraview.config import sessions, continuous_codes, lot_sizes, strike_diff
+import multiprocessing as mp
+from analysis.calculate_metrics import CalculateMetrics
+import numpy as np
+import time
+
+class PRICEMA:
+    def __init__(self):
+        self.ck = ChakraView()
+        self.previous_date = None
+        self.metrics = CalculateMetrics()
+        self.continuous_codes = continuous_codes
+        self.signals_list = []
+    
+    def reset_all_variables(self):
+        self.entry_price = np.nan
+        self.exit_price = np.nan
+        self.short_condition = False
+        self.long_condition = False
+        self.entry_trade = ''
+        self.entry_time = None
+        self.entry_price = None
+        self.position_count = 0
+        self.entry_symbol = None
+        self.expiry = None
+        
+    
+    def check_new_day(self, date):
+        self.date = date
+        if self.date != self.previous_date:
+            self.previous_date = self.date
+            return True
+        elif self.date == self.previous_date:
+            return False
+
+
+    def set_signal_parameters(self, uid):
+        uid_split = uid.split('_')
+        self.strat = uid_split.pop(0)
+        self.underlying = uid_split.pop(0)
+        self.expiry_code = uid_split.pop(0)
+        self.fut_series = self.continuous_codes.get(self.expiry_code)
+        self.ma_period = int(uid_split.pop(0))
+        self.timeframe = uid_split.pop(0)
+        self.atr_multiplier = float(uid_split.pop(0))
+        self.qty = lot_sizes.get(self.underlying)
+        self.start_time = sessions.get(self.underlying).get('start')
+        self.end_time = sessions.get(self.underlying).get('end')
+        self.strike_diff = strike_diff.get(self.underlying)
+    
+    def get_actual_event_timestamp(self, timestamp: datetime):
+        timeframe = int(self.timeframe)
+        offset = timeframe - 1
+        actual_timestamp = timestamp + datetime.timedelta(minutes=offset)
+        return actual_timestamp
+    
+    def create_itertupes(self, db):
+        return db.itertuples(index=False)
+    
+    def generate_uid_from_parameters(self, underlying, expiry_code, ma_period, timeframe, reentry):
+        return f'PRICEMA_{underlying}_{expiry_code}_{ma_period}_{timeframe}_{reentry}'
+
+
+    def generate_resampled_timestamps(self):
+        int_timeframe = int(self.timeframe)
+        print(f'TimeFrame Debug: {self.timeframe}')
+        start_dt = datetime.datetime.combine(datetime.date.today(), self.start_time)
+        end_dt = datetime.datetime.combine(datetime.date.today(), self.end_time)
+        print(f'Start Time DEBUG: {start_dt}')
+        print(f'End Time Debug: {end_dt}')
+        adjusted_end_dt = end_dt - datetime.timedelta(minutes=2)
+        valid_timestamps = []
+        while start_dt <= adjusted_end_dt:
+            start_dt += datetime.timedelta(minutes=int_timeframe)
+
+            if start_dt > adjusted_end_dt:
+                valid_timestamps.append(adjusted_end_dt.time())
+                break
+            
+            valid_timestamps.append(start_dt.time())
+
+        return valid_timestamps
+    
+    def calculate_pricemabands(self, db):
+
+        # compute ATR
+        db['prev_close'] = db['c'].shift(1)
+        db['tr'] = np.maximum.reduce([
+            db['h'] - db['l'],
+            (db['h'] - db['prev_close']).abs(),
+            (db['l'] - db['prev_close']).abs()
+        ])
+        db['atr'] = db['tr'].rolling(self.ma_period).mean()
+        db['ma'] = db['c'].rolling(self.ma_period).mean()
+        db['upperband'] = db['ma'] + self.atr_multiplier * db['atr']
+        db['lowerband'] = db['ma'] - self.atr_multiplier * db['atr']
+        return db
+    
+
+    def resample_df(self, db):
+
+        df = db.copy()
+
+        # create timestamp
+        df['timestamp'] = (
+            pd.to_datetime(df['date']) +
+            pd.to_timedelta(df['time'].astype(str))
+        )
+
+        resampled_list = []
+
+        for date, day_df in df.groupby('date'):
+
+            day_df = day_df.set_index('timestamp')
+
+            resampled = day_df.resample(
+                f'{self.timeframe}min',
+                label='left',
+                closed='left',
+                origin='start_day',
+                offset='9h15min'
+            ).agg({
+                'o': 'first',
+                'h': 'max',
+                'l': 'min',
+                'c': 'last'
+            })
+
+            resampled_list.append(resampled)
+
+        resampled_df = pd.concat(resampled_list)
+
+        resampled_df = resampled_df.reset_index(drop=False)
+        resampled_df['date'] = resampled_df['timestamp'].dt.date
+        resampled_df['time'] = resampled_df['timestamp'].dt.time
+
+        return resampled_df.dropna()
+
+    def get_resampled_timestamp(self, date: datetime.date, time: datetime.time):
+        int_timeframe = int(self.timeframe)
+        timestamp = datetime.datetime.combine(date, time)
+        timestamp_offset = int_timeframe - 1
+        adjusted_timestamp = timestamp + datetime.timedelta(minutes=timestamp_offset)
+        adjusted_time = adjusted_timestamp.time()
+        return adjusted_time
+
+    def gen_signals(self):
+        signals_list = []
+        commodities_underlying = None
+        if self.underlying in ['GOLD', 'CRUDEOIL']:
+            commodities_underlying = self.underlying + '_' + self.fut_series
+
+        if commodities_underlying is not None:
+            self.db = self.ck.get_spot_df(commodities_underlying)
+        else:
+            self.db = self.ck.get_spot_df(self.underlying)
+            
+        df = self.db.copy()
+        resampled_df = self.resample_df(df)
+        resampled_df = resampled_df.sort_values(by='timestamp').reset_index(drop = True)
+        indicator_df = self.calculate_pricemabands(resampled_df)
+        indicator_df = indicator_df[(indicator_df['time'] >= datetime.time(9, 15)) & (indicator_df['time'] < datetime.time(15, 30, 0))]
+        iterable = self.create_itertupes(indicator_df)
+        self.in_position = 0
+        for self.row in iterable:
+            new_day = self.check_new_day(self.row.timestamp.date())
+            #ENTRY
+            if self.row.c > self.row.upperband:
+                adjusted_timestamp = self.get_resampled_timestamp(self.row.date, self.row.time)
+                if self.in_position == -1:
+                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), adjusted_timestamp)
+                    self.exit_price = self.tick.get('c') if self.tick else np.nan
+                    self.exit_trade = 'COVER'
+                    self.entry_price = self.exit_price
+                    self.entry_trade = 'BUY'
+                    self.in_position = 1
+                    signals_list.append(
+                                {
+                                    'timestamp': self.row.timestamp,
+                                    'symbol': f'{self.underlying}-FUT',
+                                    'price': self.exit_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*self.exit_price if self.exit_price else 0,
+                                    'trade': self.exit_trade,
+                                    'system action': 'SHORT_EXIT' 
+                                }
+                    )
+
+                    signals_list.append(
+                                {
+                                    'timestamp': self.row.timestamp,
+                                    'symbol': f'{self.underlying}-FUT',
+                                    'price': self.entry_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*self.entry_price if self.entry_price else 0,
+                                    'trade': self.entry_trade,
+                                    'system action': 'LONG_ENTRY' 
+                                }
+                    )
+
+                elif self.in_position != 1:
+                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), adjusted_timestamp)
+                    self.entry_price = self.tick.get('c') if self.tick else np.nan
+                    self.entry_trade = 'BUY'
+                    self.in_position = 1
+                    print('ADDING LONG ENTRY')
+                    signals_list.append(
+                                {
+                                    'timestamp': self.row.timestamp,
+                                    'symbol': f'{self.underlying}-FUT',
+                                    'price': self.entry_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*self.entry_price if self.entry_price else 0,
+                                    'trade': self.entry_trade,
+                                    'system action': 'LONG_ENTRY' 
+                                }
+                    )
+
+            if self.row.c < self.row.lowerband:
+                adjusted_timestamp = self.get_resampled_timestamp(self.row.date, self.row.time)
+                if self.in_position == 1:
+                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), adjusted_timestamp)
+                    self.exit_price = self.tick.get('c') if self.tick else np.nan
+                    self.exit_trade = 'SELL'
+                    self.entry_price = self.exit_price
+                    self.entry_trade = 'SHORT'
+                    self.in_position = -1
+                    signals_list.append(
+                                {
+                                    'timestamp': self.row.timestamp,
+                                    'symbol': f'{self.underlying}-FUT',
+                                    'price': self.exit_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*self.exit_price if self.exit_price else np.nan,
+                                    'trade': self.exit_trade,
+                                    'system action': 'LONG_EXIT' 
+                                }
+                    )
+                    signals_list.append(
+                                {
+                                    'timestamp': self.row.timestamp,
+                                    'symbol': f'{self.underlying}-FUT',
+                                    'price': self.entry_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*self.entry_price if self.entry_price else np.nan,
+                                    'trade': self.entry_trade,
+                                    'system action': 'SHORT_ENTRY' 
+                                }
+                    )
+
+                elif self.in_position != -1:
+                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), adjusted_timestamp)
+                    self.entry_price = self.tick.get('c') if self.tick else np.nan
+                    self.entry_trade = 'SHORT'
+                    self.in_position = -1
+                    print('ADDING SHORT ENTRY')
+                    signals_list.append(
+                                {
+                                    'timestamp': self.row.timestamp,
+                                    'symbol': f'{self.underlying}-FUT',
+                                    'price': self.entry_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*self.entry_price if self.entry_price else 0,
+                                    'trade': self.entry_trade,
+                                    'system action': 'SHORT_ENTRY' 
+                                }
+                    )
+
+        return signals_list
+
+    def run_backtest(self, uid: str):
+        start = time.time()
+        self.set_signal_parameters(uid)
+        signals = self.gen_signals()
+        df = pd.DataFrame(signals)
+        tradesheet = self.metrics.calculate_pl_in_positional_tradesheet(df)
+        tradesheet.to_parquet(f'C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/pricemabands/{uid}.parquet')
+        end = time.time()
+        print(f'Elapsed Time In COMPLETING raw Tradesheet Generation: {end-start}')
+        print("+++++++++++++++++++++++++++++++++++++++ GENERATED UID +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+

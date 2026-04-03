@@ -37,11 +37,10 @@ class BTSTOI(ChakraView):
         return df.itertuples(index=False)
     
     def check_new_day(self, date: datetime.date):
-        if date == self.new_day:
-            return False
         if date != self.new_day:
             self.new_day = date
             return True
+        return False
     
     def get_resampled_tick(self, date: datetime.date, time: datetime.time):
         timestamp_offset = self.timeframe - 1
@@ -74,7 +73,7 @@ class BTSTOI(ChakraView):
     def gen_signals(self, row):
         self.adjusted_expiry_code = 0
         current_timestamp = f'{row.date} {row.time}'
-        
+        new_day = self.check_new_day(row.date)
         if row.date == self.expiry:
             if self.expiry_code == 0:
                 self.adjusted_expiry_code = self.expiry_code + 1
@@ -112,36 +111,39 @@ class BTSTOI(ChakraView):
                             self.in_position = -1
                         else:
                             logger.warning(f'PUT LONG TICK FOUND EMPTY AT {current_timestamp}')
-                        
-        if row.time == datetime.time(9, 16, 0):
-            if self.in_position == -1:
-                logger.info(f'PUT LONG EXIT SIGNAL FOUND AT {current_timestamp}')
-                exit_tick = self.get_tick(self.entry_symbol, row.date, row.time)
-                if exit_tick:
-                    exit_price = exit_tick['c']
-                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'SELL', 'LONG_EXIT')
-                    self.signal_list.append(exit_trade)
-                    self.reset_all_variables()
-                else:
-                    logger.warning(f'PUT LONG EXIT TICK FOUND EMPTY AT: {current_timestamp}')
-                    self.reset_all_variables()
+                            self.reset_all_variables()
 
-            elif self.in_position == 1:
-                logger.info(f'CALL LONG EXIT SIGNAL FOUND AT {current_timestamp}')
-                exit_tick = self.get_tick(self.entry_symbol, row.date, row.time)
-                if exit_tick:
-                    exit_price = exit_tick['c']
-                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'SELL', 'LONG_EXIT')
-                    self.signal_list.append(exit_trade)
-                    self.reset_all_variables()
-                else:
-                    logger.warning(f'CALL LONG EXIT TICK FOUND EMPTY AT: {current_timestamp}')
-                    self.reset_all_variables()
+        if new_day:                
+            if row.time == datetime.time(9, 15, 0):
+                if self.in_position == -1:
+                    logger.info(f'PUT LONG EXIT SIGNAL FOUND AT {current_timestamp}')
+                    exit_tick = self.get_tick(self.entry_symbol, row.date, row.time)
+                    if exit_tick:
+                        exit_price = exit_tick['c']
+                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'SELL', 'LONG_EXIT')
+                        self.signal_list.append(exit_trade)
+                        self.reset_all_variables()
+                    else:
+                        logger.warning(f'PUT LONG EXIT TICK FOUND EMPTY AT: {current_timestamp}')
+                        self.reset_all_variables()
+
+                elif self.in_position == 1:
+                    logger.info(f'CALL LONG EXIT SIGNAL FOUND AT {current_timestamp}')
+                    exit_tick = self.get_tick(self.entry_symbol, row.date, row.time)
+                    if exit_tick:
+                        exit_price = exit_tick['c']
+                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'SELL', 'LONG_EXIT')
+                        self.signal_list.append(exit_trade)
+                        self.reset_all_variables()
+                    else:
+                        logger.warning(f'CALL LONG EXIT TICK FOUND EMPTY AT: {current_timestamp}')
+                        self.reset_all_variables()
 
 
     def run_backtest(self, uid: str):
         self.set_params_from_uid(uid)
         spot_df = self.get_spot_df(self.underlying)
+        spot_df = spot_df[(spot_df['time'] >= self.start) & (spot_df['time'] <= self.end)].reset_index(drop=True).copy()
         spot_itertuples = self.create_itertuples(spot_df)
         for row in spot_itertuples:
             self.gen_signals(row)

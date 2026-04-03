@@ -1,4 +1,4 @@
-from chakraview.PRICEMABANDS_MAEXIT import PRICEMA
+from chakraview.BTST import BTST
 import multiprocessing as mp
 
 # ma_iterations = list(range(1, 100))
@@ -7,9 +7,8 @@ underlyings = ['NIFTY'] #['GOLD', 'CRUDEOIL']
 timeframe_iterations = [5]
 # multiplier_iterations = [1, 1.5, 2, 2.5, 3, 3.5, 4]
 uids = [
-        "PRICEMABANDS_SENSEX_0_33_25_1",
-        "PRICEMABANDS_SENSEX_0_63_25_1",
-        "PRICEMABANDS_SENSEX_0_93_25_1",  
+        'BTST_NIFTY_1_210_0.5_0_0',
+        'BTST_NIFTY_1_0_1.5_0_0',
         ]
 
 # for ma in ma_iterations:
@@ -20,7 +19,7 @@ uids = [
 #             # uids.append(uid)
 
 def run_backtest(uid):
-    backtest = PRICEMA()         # instantiate here (not outside)
+    backtest = BTST()         # instantiate here (not outside)
     backtest.run_backtest(uid)
 
 def create_processes(uid_list, batch_size):
@@ -123,3 +122,19 @@ if __name__ == '__main__':
 # "BTST_SENSEX_1_1_0_0_0",
 # "BTST_NIFTY_1_2_0_0_0",
 # "BTST_SENSEX_1_2_0_0_0"
+
+# 'AVWAP_NIFTY_25_W_0_0'
+# 'AVWAP_NIFTY_25_D_0_0',
+# 'AVWAP_NIFTY_25_M_0_0',
+# 'AVWAP_NIFTY_25_Q_0_0'
+# 'AVWAP_NIFTY_25_M_3_0',
+# 'AVWAP_BANKNIFTY_25_M_3_0',
+# 'AVWAP_NIFTY_25_W_0_0',
+
+# 'BTSTOI_NIFTY_1_1.3_0.7_0_0',
+# 'BTSTOI_SENSEX_1_1.2_0.8_0_0',
+# 'BTSTOI_BANKNIFTY_1_1.2_0.8_0_0',
+# 'BTSTOI_NIFTY_1_1.2_0.8_0_0',
+# 'BTSTOI_NIFTY_1_1.5_0.5_0_0',
+# 'BTST_SENSEX_1_1.2_0.8_0_0',
+# 'BTST_NIFTY_1_1.2_0.8_0_0',
