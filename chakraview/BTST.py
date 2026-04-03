@@ -98,7 +98,7 @@ class BTST(ChakraView):
         return resampled_df.dropna()
     
     def calculate_percentage_change(self, row):
-        base_time = self.get_delay_timestamp(row.date)
+        base_time = self.start
         base_tick = self.get_spot_tick(self.underlying, 0, row.date, base_time)
         if base_tick:
             base_price = base_tick['c']
@@ -115,7 +115,7 @@ class BTST(ChakraView):
         
         adjusted_expiry_code = 0
         new_day = self.check_new_day(row.date)
-
+        adjusted_timestamp = self.get_delay_timestamp(row.date)
         if self.expiry:
             if self.expiry_code == 0:
                 if row.date == self.expiry:
@@ -124,12 +124,12 @@ class BTST(ChakraView):
             adjusted_expiry_code = self.expiry_code
 
         #ENTRY
-        if row.time == datetime.time(15, 28):
+        if row.time == adjusted_timestamp:
             if self.in_position == 0:
                 percentage_change = self.calculate_percentage_change(row)
                 if percentage_change:
                     negative_percentage = 0 - self.percentage_criteria
-                    if percentage_change >= self.percentage_criteria:
+                    if percentage_change > 0 and percentage_change >= self.percentage_criteria:
                         current_timestamp = f'{row.date} {row.time}'
                         self.logger.info(f'BTST LONG SIGNAL FOUND AT {row.date} {row.time}')
                         entry_tick = self.find_ticker_by_moneyness(self.underlying, adjusted_expiry_code, row.date, row.time, row.c, self.strike_diff, 'CE', self.moneyness)
@@ -144,7 +144,7 @@ class BTST(ChakraView):
                             self.logger.warning(f"Entry Call Tick Returned None At {row.date} {row.time}")
                             self.reset_all_variables()
                 
-                    elif percentage_change <= negative_percentage:
+                    elif percentage_change < 0 and percentage_change <= negative_percentage:
                         current_timestamp = f'{row.date} {row.time}'
                         self.logger.info(f'BTST SHORT SIGNAL FOUND AT {row.date} {row.time}')
                         entry_tick = self.find_ticker_by_moneyness(self.underlying, adjusted_expiry_code, row.date, row.time, row.c, self.strike_diff, 'PE', self.moneyness)
