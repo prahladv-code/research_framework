@@ -1,8 +1,7 @@
-./chakraview/__pycache__
-./__pycache__
-./ddb/__pycache__
-./frontend/__pycache__
-./tradesheets/__pycache__
-./zerodha_backfill/__pycache__
-./analysis/__pycache__
-./strats/__pycache__
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Optional but recommended
+*.pyo
+*.pyd
