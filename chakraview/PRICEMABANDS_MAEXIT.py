@@ -265,6 +265,7 @@ class PRICEMA:
                                     'system action': 'SHORT_ENTRY' 
                                 }
                     )
+                    
             if self.row.c < self.row.ma:
                 if self.in_position == 1:
                     adjusted_timestamp = self.get_resampled_timestamp(self.row.date, self.row.time)

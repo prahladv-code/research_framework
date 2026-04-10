@@ -7,8 +7,10 @@ underlyings = ['NIFTY'] #['GOLD', 'CRUDEOIL']
 timeframe_iterations = [5]
 # multiplier_iterations = [1, 1.5, 2, 2.5, 3, 3.5, 4]
 uids = [
-        'BTST_NIFTY_1_210_0.5_0_0',
-        'BTST_NIFTY_1_0_1.5_0_0',
+        'BTST_NIFTY_1_240_0.5_0_0',
+        # 'BTST_NIFTY_1_300_0.5_0_0'
+        # 'BTST_NIFTY_1_60_0.5_0_0',
+        # 'BTST_NIFTY_1_120_0.5_0_0',
         ]
 
 # for ma in ma_iterations:
