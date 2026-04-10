@@ -35,7 +35,7 @@ class CalculateMetrics:
     def calculate_pl_in_opt_tradesheet(self, df):
 
         df['timestamp'] = pd.to_datetime(df['timestamp'], format='%Y-%m-%d %H:%M:%S')
-        df = df.sort_values(['symbol', 'timestamp']).reset_index(drop=True)
+        df = df.sort_values(['timestamp', 'symbol']).reset_index(drop=True)
 
         df['P/L'] = np.nan
 
