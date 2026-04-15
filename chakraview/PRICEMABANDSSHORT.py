@@ -6,15 +6,17 @@ import multiprocessing as mp
 from analysis.calculate_metrics import CalculateMetrics
 import numpy as np
 import time
+from chakraview.logger import logger
 
-class PRICEMA:
+class PRICEMA(ChakraView):
     def __init__(self):
-        self.ck = ChakraView()
+        super().__init__()
         self.previous_date = None
         self.metrics = CalculateMetrics()
         self.continuous_codes = continuous_codes
         self.signals_list = []
-    
+        self.reset_all_variables()
+        
     def reset_all_variables(self):
         self.entry_price = np.nan
         self.exit_price = np.nan
@@ -26,6 +28,8 @@ class PRICEMA:
         self.position_count = 0
         self.entry_symbol = None
         self.expiry = None
+        self.in_position = 0
+        self.entry_symbol = None
         
     
     def check_new_day(self, date):
@@ -41,7 +45,7 @@ class PRICEMA:
         uid_split = uid.split('_')
         self.strat = uid_split.pop(0)
         self.underlying = uid_split.pop(0)
-        self.expiry_code = uid_split.pop(0)
+        self.expiry_code = int(uid_split.pop(0))
         self.fut_series = self.continuous_codes.get(self.expiry_code)
         self.ma_period = int(uid_split.pop(0))
         self.timeframe = uid_split.pop(0)
@@ -147,40 +151,23 @@ class PRICEMA:
         adjusted_time = adjusted_timestamp.time()
         return adjusted_time
 
-    def gen_signals(self):
-        signals_list = []
-        commodities_underlying = None
-        if self.underlying in ['GOLD', 'CRUDEOIL']:
-            commodities_underlying = self.underlying + '_' + self.fut_series
-
-        if commodities_underlying is not None:
-            self.db = self.ck.get_spot_df(commodities_underlying)
-        else:
-            self.db = self.ck.get_spot_df(self.underlying)
-            
-        df = self.db.copy()
-        resampled_df = self.resample_df(df)
-        resampled_df = resampled_df.sort_values(by='timestamp').reset_index(drop = True)
-        indicator_df = self.calculate_pricemabands(resampled_df)
-        indicator_df = indicator_df[(indicator_df['time'] >= datetime.time(9, 15)) & (indicator_df['time'] < datetime.time(15, 30, 0))]
-        iterable = self.create_itertupes(indicator_df)
-        self.in_position = 0
-        for self.row in iterable:
-            new_day = self.check_new_day(self.row.timestamp.date())
-            #ENTRY
-            if self.row.c > self.row.upperband:
-                adjusted_timestamp = self.get_resampled_timestamp(self.row.date, self.row.time)
-                if self.in_position == -1:
-                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), adjusted_timestamp)
-                    self.exit_price = self.tick.get('c') if self.tick else np.nan
+    def gen_signals(self, row):
+        new_day = self.check_new_day(row.timestamp.date())
+        logger.debug(f'EXPIRY DEBUG: {self.expiry}')
+        #ENTRY
+        if row.c > row.upperband:
+            adjusted_timestamp = self.get_resampled_timestamp(row.date, row.time)
+            if self.in_position == -1:
+                exit_ticker = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                if exit_ticker:
+                    logger.info(f'SHORT EXIT TICK FOUND AT: {row.date} {row.time}')
+                    self.exit_price = exit_ticker.get('c')
                     self.exit_trade = 'COVER'
-                    self.entry_price = self.exit_price
-                    self.entry_trade = 'BUY'
-                    self.in_position = 1
-                    signals_list.append(
+                    
+                    self.signals_list.append(
                                 {
-                                    'timestamp': self.row.timestamp,
-                                    'symbol': f'{self.underlying}-FUT',
+                                    'timestamp': row.timestamp,
+                                    'symbol': self.entry_symbol,
                                     'price': self.exit_price,
                                     'qty': self.qty,
                                     'cv': self.qty*self.exit_price if self.exit_price else 0,
@@ -188,95 +175,252 @@ class PRICEMA:
                                     'system action': 'SHORT_EXIT' 
                                 }
                     )
-
-                    signals_list.append(
-                                {
-                                    'timestamp': self.row.timestamp,
-                                    'symbol': f'{self.underlying}-FUT',
-                                    'price': self.entry_price,
-                                    'qty': self.qty,
-                                    'cv': self.qty*self.entry_price if self.entry_price else 0,
-                                    'trade': self.entry_trade,
-                                    'system action': 'LONG_ENTRY' 
-                                }
-                    )
-
-                elif self.in_position != 1:
-                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), adjusted_timestamp)
-                    self.entry_price = self.tick.get('c') if self.tick else np.nan
-                    self.entry_trade = 'BUY'
+                    self.reset_all_variables()
+                else:
+                    logger.warning(f'SHORT EXIT TICK FOUND EMPTY AT {row.date} {row.time}')
+                    self.reset_all_variables()
+                    
+                entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'PE', 0)
+                if entry_ticker:
                     self.in_position = 1
-                    print('ADDING LONG ENTRY')
-                    signals_list.append(
+                    logger.info(f"LONG ENTRY SIGNAL FOUND AT {row.date} {row.time}")
+                    self.entry_symbol = entry_ticker.get('symbol')
+                    self.expiry = entry_ticker.get('expiry').date()
+                    entry_price = entry_ticker.get('c')
+                    entry_trade = 'SHORT'
+                    self.signals_list.append(
                                 {
-                                    'timestamp': self.row.timestamp,
-                                    'symbol': f'{self.underlying}-FUT',
-                                    'price': self.entry_price,
+                                    'timestamp': row.timestamp,
+                                    'symbol': self.entry_symbol,
+                                    'price': entry_price,
                                     'qty': self.qty,
-                                    'cv': self.qty*self.entry_price if self.entry_price else 0,
-                                    'trade': self.entry_trade,
-                                    'system action': 'LONG_ENTRY' 
+                                    'cv': self.qty*entry_price if entry_price else 0,
+                                    'trade': entry_trade,
+                                    'system action': 'SHORT_ENTRY' 
                                 }
                     )
-
-            if self.row.c < self.row.lowerband:
-                adjusted_timestamp = self.get_resampled_timestamp(self.row.date, self.row.time)
-                if self.in_position == 1:
-                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), adjusted_timestamp)
-                    self.exit_price = self.tick.get('c') if self.tick else np.nan
-                    self.exit_trade = 'SELL'
-                    self.entry_price = self.exit_price
-                    self.entry_trade = 'SHORT'
-                    self.in_position = -1
-                    signals_list.append(
+                else:
+                    logger.warning(f'LONG ENTRY TICK FOUND EMPTY AT: {row.date} {row.time}')
+                    self.reset_all_variables()
+                    
+            elif self.in_position == 0:
+                entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'PE', 0)
+                if entry_ticker:
+                    entry_price = entry_ticker.get('c')
+                    entry_trade = 'SHORT'
+                    self.in_position = 1
+                    self.entry_symbol = entry_ticker.get('symbol')
+                    self.expiry = entry_ticker.get('expiry').date()
+                    logger.info(f'LONG ENTRY SIGNAL FOUND AT {row.date} {row.time}')
+                    self.signals_list.append(
                                 {
-                                    'timestamp': self.row.timestamp,
-                                    'symbol': f'{self.underlying}-FUT',
+                                    'timestamp': row.timestamp,
+                                    'symbol': self.entry_symbol,
+                                    'price': entry_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*entry_price if self.entry_price else 0,
+                                    'trade': self.entry_trade,
+                                    'system action': 'SHORT_ENTRY' 
+                                }
+                    )
+                else:
+                    logger.warning(f'LONG ENTRY TICKER FOUND EMPTY AT {row.date} {row.time}')
+                    self.reset_all_variables()
+
+        if row.c < row.lowerband:
+            adjusted_timestamp = self.get_resampled_timestamp(row.date, row.time)
+            if self.in_position == 1:
+                exit_ticker = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                if exit_ticker:
+                    logger.info(f'SHORT EXIT TICK FOUND AT: {row.date} {row.time}')
+                    self.exit_price = exit_ticker.get('c')
+                    self.exit_trade = 'COVER'
+                    
+                    self.signals_list.append(
+                                {
+                                    'timestamp': row.timestamp,
+                                    'symbol': self.entry_symbol,
                                     'price': self.exit_price,
                                     'qty': self.qty,
-                                    'cv': self.qty*self.exit_price if self.exit_price else np.nan,
+                                    'cv': self.qty*self.exit_price if self.exit_price else 0,
                                     'trade': self.exit_trade,
-                                    'system action': 'LONG_EXIT' 
+                                    'system action': 'SHORT_EXIT' 
                                 }
                     )
-                    signals_list.append(
-                                {
-                                    'timestamp': self.row.timestamp,
-                                    'symbol': f'{self.underlying}-FUT',
-                                    'price': self.entry_price,
-                                    'qty': self.qty,
-                                    'cv': self.qty*self.entry_price if self.entry_price else np.nan,
-                                    'trade': self.entry_trade,
-                                    'system action': 'SHORT_ENTRY' 
-                                }
-                    )
-
-                elif self.in_position != -1:
-                    self.tick = self.ck.get_fut_tick(self.underlying, self.expiry_code, self.row.timestamp.date(), adjusted_timestamp)
-                    self.entry_price = self.tick.get('c') if self.tick else np.nan
-                    self.entry_trade = 'SHORT'
+                    self.reset_all_variables()
+                else:
+                    logger.warning(f'SHORT EXIT TICK FOUND EMPTY AT {row.date} {row.time}')
+                    self.reset_all_variables()
+                    
+                entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'CE', 0)
+                if entry_ticker:
                     self.in_position = -1
-                    print('ADDING SHORT ENTRY')
-                    signals_list.append(
+                    logger.info(f"SHORT ENTRY SIGNAL FOUND AT {row.date} {row.time}")
+                    self.entry_symbol = entry_ticker.get('symbol')
+                    self.expiry = entry_ticker.get('expiry').date()
+                    entry_price = entry_ticker.get('c')
+                    entry_trade = 'SHORT'
+                    self.signals_list.append(
                                 {
-                                    'timestamp': self.row.timestamp,
-                                    'symbol': f'{self.underlying}-FUT',
-                                    'price': self.entry_price,
+                                    'timestamp': row.timestamp,
+                                    'symbol': self.entry_symbol,
+                                    'price': entry_price,
                                     'qty': self.qty,
-                                    'cv': self.qty*self.entry_price if self.entry_price else 0,
+                                    'cv': self.qty*entry_price if entry_price else 0,
+                                    'trade': entry_trade,
+                                    'system action': 'SHORT_ENTRY' 
+                                }
+                    )
+                else:
+                    logger.warning(f'SHORT ENTRY TICK FOUND EMPTY AT: {row.date} {row.time}')
+                    self.reset_all_variables()
+
+            elif self.in_position == 0:
+                entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'CE', 0)
+                if entry_ticker:
+                    entry_price = entry_ticker.get('c')
+                    entry_trade = 'SHORT'
+                    self.in_position = -1
+                    self.entry_symbol = entry_ticker.get('symbol')
+                    self.expiry = entry_ticker.get('expiry').date()
+                    logger.info(f'SHORT ENTRY SIGNAL FOUND AT {row.date} {row.time}')
+                    self.signals_list.append(
+                                {
+                                    'timestamp': row.timestamp,
+                                    'symbol': self.entry_symbol,
+                                    'price': entry_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*entry_price if self.entry_price else 0,
                                     'trade': self.entry_trade,
                                     'system action': 'SHORT_ENTRY' 
                                 }
                     )
+                else:
+                    logger.warning(f'SHORT ENTRY TICKER FOUND EMPTY AT {row.date} {row.time}')
+                    self.reset_all_variables()
+                    
+        if row.date == self.expiry:
+            adjusted_timestamp = self.get_resampled_timestamp(row.date, row.time)
+            logger.debug(f'Adjusted Timestamp Acquired: {adjusted_timestamp}')
+            if adjusted_timestamp == self.end_time:
+                if self.in_position == -1:
+                    logger.debug("SHORT POSITION EXPIRED #####################################")
+                    exit_ticker = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                    if exit_ticker:
+                        logger.info(f'EXPIRY EXIT TICK FOUND AT: {row.date} {row.time}')
+                        self.exit_price = exit_ticker.get('c')
+                        self.exit_trade = 'COVER'
+                        
+                        self.signals_list.append(
+                                    {
+                                        'timestamp': row.timestamp,
+                                        'symbol': self.entry_symbol,
+                                        'price': self.exit_price,
+                                        'qty': self.qty,
+                                        'cv': self.qty*self.exit_price if self.exit_price else 0,
+                                        'trade': self.exit_trade,
+                                        'system action': 'SHORT_EXIT' 
+                                    }
+                        )
+                        self.reset_all_variables()
+                    else:
+                        logger.warning(f'EXPIRY EXIT TICK FOUND EMPTY AT {row.date} {row.time}')
+                        self.reset_all_variables()
+                    
+                    entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'CE', 0)
+                    if entry_ticker:
+                        entry_price = entry_ticker.get('c')
+                        entry_trade = 'SHORT'
+                        self.in_position = -1
+                        self.entry_symbol = entry_ticker.get('symbol')
+                        self.expiry = entry_ticker.get('expiry').date()
+                        logger.info(f'SHORT ENTRY SIGNAL FOUND AT {row.date} {row.time}')
+                        self.signals_list.append(
+                                    {
+                                        'timestamp': row.timestamp,
+                                        'symbol': self.entry_symbol,
+                                        'price': entry_price,
+                                        'qty': self.qty,
+                                        'cv': self.qty*entry_price if self.entry_price else 0,
+                                        'trade': self.entry_trade,
+                                        'system action': 'SHORT_ENTRY' 
+                                    }
+                        )
+                    else:
+                        logger.warning(f'SHORT ENTRY TICKER FOUND EMPTY AT {row.date} {row.time}')
+                        self.reset_all_variables()
 
-        return signals_list
+                elif self.in_position == 1:
+                    logger.debug("SHORT POSITION EXPIRED #####################################")
+                    exit_ticker = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                    if exit_ticker:
+                        logger.info(f'EXPIRY EXIT TICK FOUND AT: {row.date} {row.time}')
+                        self.exit_price = exit_ticker.get('c')
+                        self.exit_trade = 'COVER'
+                        
+                        self.signals_list.append(
+                                    {
+                                        'timestamp': row.timestamp,
+                                        'symbol': self.entry_symbol,
+                                        'price': self.exit_price,
+                                        'qty': self.qty,
+                                        'cv': self.qty*self.exit_price if self.exit_price else 0,
+                                        'trade': self.exit_trade,
+                                        'system action': 'SHORT_EXIT' 
+                                    }
+                        )
+                        self.reset_all_variables()
+                    else:
+                        logger.warning(f'EXPIRY EXIT TICK FOUND EMPTY AT {row.date} {row.time}')
+                        self.reset_all_variables()
+                    
+                    entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'PE', 0)
+                    if entry_ticker:
+                        entry_price = entry_ticker.get('c')
+                        entry_trade = 'SHORT'
+                        self.in_position = 1
+                        self.entry_symbol = entry_ticker.get('symbol')
+                        self.expiry = entry_ticker.get('expiry').date()
+                        logger.info(f'LONG ENTRY SIGNAL FOUND AT {row.date} {row.time}')
+                        self.signals_list.append(
+                                    {
+                                        'timestamp': row.timestamp,
+                                        'symbol': self.entry_symbol,
+                                        'price': entry_price,
+                                        'qty': self.qty,
+                                        'cv': self.qty*entry_price if self.entry_price else 0,
+                                        'trade': self.entry_trade,
+                                        'system action': 'SHORT_ENTRY' 
+                                    }
+                        )
+                    else:
+                        logger.warning(f'LONG ENTRY TICKER FOUND EMPTY AT {row.date} {row.time}')
+                        self.reset_all_variables()
+            
+        return self.signals_list
 
     def run_backtest(self, uid: str):
         start = time.time()
         self.set_signal_parameters(uid)
-        signals = self.gen_signals()
-        df = pd.DataFrame(signals)
-        tradesheet = self.metrics.calculate_pl_in_positional_tradesheet(df)
+        commodities_underlying = None
+        if self.underlying in ['GOLD', 'CRUDEOIL']:
+            commodities_underlying = self.underlying + '_' + self.fut_series
+
+        if commodities_underlying is not None:
+            self.db = self.get_spot_df(commodities_underlying)
+        else:
+            self.db = self.get_spot_df(self.underlying)
+            
+        df = self.db.copy()
+        resampled_df = self.resample_df(df)
+        resampled_df = resampled_df.sort_values(by='timestamp').reset_index(drop = True)
+        indicator_df = self.calculate_pricemabands(resampled_df)
+        indicator_df = indicator_df[(indicator_df['time'] >= datetime.time(9, 15)) & (indicator_df['time'] < datetime.time(15, 30, 0))]
+        iterable = self.create_itertupes(indicator_df)
+        for row in iterable:
+            self.gen_signals(row)
+        df = pd.DataFrame(self.signals_list)
+        tradesheet = self.metrics.calculate_pl_in_opt_tradesheet(df)
         tradesheet.to_parquet(f'C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/pricemabands/{uid}.parquet')
         end = time.time()
         print(f'Elapsed Time In COMPLETING raw Tradesheet Generation: {end-start}')

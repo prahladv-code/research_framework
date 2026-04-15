@@ -1,4 +1,4 @@
-from chakraview.BTST import BTST
+from chakraview.PRICEMABANDSSHORT import PRICEMA
 import multiprocessing as mp
 
 # ma_iterations = list(range(1, 100))
@@ -7,10 +7,9 @@ underlyings = ['NIFTY'] #['GOLD', 'CRUDEOIL']
 timeframe_iterations = [5]
 # multiplier_iterations = [1, 1.5, 2, 2.5, 3, 3.5, 4]
 uids = [
-        'BTST_NIFTY_1_240_0.5_0_0',
-        # 'BTST_NIFTY_1_300_0.5_0_0'
-        # 'BTST_NIFTY_1_60_0.5_0_0',
-        # 'BTST_NIFTY_1_120_0.5_0_0',
+        "PRICEMABANDSSHORT_NIFTY_0_33_25_1",
+        "PRICEMABANDSSHORT_NIFTY_0_63_25_1",
+        "PRICEMABANDSSHORT_NIFTY_0_93_25_1",
         ]
 
 # for ma in ma_iterations:
@@ -21,7 +20,7 @@ uids = [
 #             # uids.append(uid)
 
 def run_backtest(uid):
-    backtest = BTST()         # instantiate here (not outside)
+    backtest = PRICEMA()         # instantiate here (not outside)
     backtest.run_backtest(uid)
 
 def create_processes(uid_list, batch_size):
