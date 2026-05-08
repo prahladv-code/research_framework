@@ -1,44 +1,95 @@
-from chakraview.PRICEMABANDSSHORT import PRICEMA
 import multiprocessing as mp
+from concurrent.futures import ThreadPoolExecutor
+from collections import defaultdict
+from chakraview import STRATEGY_REGISTRY
 
-# ma_iterations = list(range(1, 100))
-ma_iterations = []
-underlyings = ['NIFTY'] #['GOLD', 'CRUDEOIL'] 
-timeframe_iterations = [5]
-# multiplier_iterations = [1, 1.5, 2, 2.5, 3, 3.5, 4]
 uids = [
-        "PRICEMABANDSSHORT_NIFTY_0_33_25_1",
-        "PRICEMABANDSSHORT_NIFTY_0_63_25_1",
-        "PRICEMABANDSSHORT_NIFTY_0_93_25_1",
-        ]
+    "PRICEMABANDSSHORT_NIFTY_0_33_25_1",
+    "PRICEMABANDSSHORT_NIFTY_0_63_25_1",
+    "PRICEMABANDSSHORT_NIFTY_0_93_25_1",
+    "BOLLINGERBANDS_NIFTY_0_25_30_2_0.1",
+    "BOLLINGERBANDS_NIFTY_0_25_60_2_0.1",
+]
 
-# for ma in ma_iterations:
-#     for timeframe in timeframe_iterations:
-#             # You can use a static method or small helper
-#         for underlying in underlyings:
-#             uid = f"PRICEMACLOSEFILTER_{underlying}_0_{ma}_{timeframe}_False"
-#             # uids.append(uid)
 
-def run_backtest(uid):
-    backtest = PRICEMA()         # instantiate here (not outside)
-    backtest.run_backtest(uid)
+def run_uid(strategy_class, uid):
+    """
+    Runs single UID inside a thread
+    """
+    strategy = strategy_class()
 
-def create_processes(uid_list, batch_size):
-    for i in range(0, len(uid_list), batch_size):
-        processes = []
+    print(f"Running {uid}")
 
-        batch = uid_list[i : i + batch_size]
+    strategy.run_backtest(uid)
 
-        for uid in batch:
-            p = mp.Process(target=run_backtest, args=(uid,))
-            p.start()
-            processes.append(p)
 
-        for p in processes:
-            p.join()
+def strategy_process(strategy_name, uid_list):
+    """
+    One process per strategy
+    """
+    print(f"Started Process: {strategy_name}")
 
-if __name__ == '__main__':
-    create_processes(uids, 3)
+    strategy_class = STRATEGY_REGISTRY[strategy_name]
+
+    # Threads inside process
+    with ThreadPoolExecutor(max_workers=len(uid_list)) as executor:
+
+        futures = []
+
+        for uid in uid_list:
+            futures.append(
+                executor.submit(
+                    run_uid,
+                    strategy_class,
+                    uid
+                )
+            )
+
+        for future in futures:
+            future.result()
+
+    print(f"Finished Process: {strategy_name}")
+
+
+def group_uids_by_strategy(uids):
+
+    grouped = defaultdict(list)
+
+    for uid in uids:
+
+        strategy_name = uid.split("_")[0]
+
+        grouped[strategy_name].append(uid)
+
+    return grouped
+
+
+def main():
+
+    grouped = group_uids_by_strategy(uids)
+
+    processes = []
+
+    for strategy_name, uid_list in grouped.items():
+
+        p = mp.Process(
+            target=strategy_process,
+            args=(strategy_name, uid_list)
+        )
+
+        p.start()
+
+        processes.append(p)
+
+    for p in processes:
+        p.join()
+
+
+if __name__ == "__main__":
+
+    mp.freeze_support()  # IMPORTANT FOR WINDOWS
+
+    main()
 
 
 # "VWAP_NIFTY_0_1_0_0"

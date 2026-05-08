@@ -218,8 +218,8 @@ class PRICEMA(ChakraView):
                                     'symbol': self.entry_symbol,
                                     'price': entry_price,
                                     'qty': self.qty,
-                                    'cv': self.qty*entry_price if self.entry_price else 0,
-                                    'trade': self.entry_trade,
+                                    'cv': self.qty*entry_price if entry_price else 0,
+                                    'trade': entry_trade,
                                     'system action': 'SHORT_ENTRY' 
                                 }
                     )
@@ -290,19 +290,72 @@ class PRICEMA(ChakraView):
                                     'symbol': self.entry_symbol,
                                     'price': entry_price,
                                     'qty': self.qty,
-                                    'cv': self.qty*entry_price if self.entry_price else 0,
-                                    'trade': self.entry_trade,
+                                    'cv': self.qty*entry_price if entry_price else 0,
+                                    'trade': entry_trade,
                                     'system action': 'SHORT_ENTRY' 
                                 }
                     )
                 else:
                     logger.warning(f'SHORT ENTRY TICKER FOUND EMPTY AT {row.date} {row.time}')
                     self.reset_all_variables()
+
+        if row.c < row.ma:
+            adjusted_timestamp = self.get_resampled_timestamp(row.date, row.time)
+            logger.debug(f'Adjusted Timestamp Acquired: {adjusted_timestamp}')
+            if self.in_position == 1:
+                exit_ticker = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                if exit_ticker:
+                    logger.info(f'SHORT EXIT TICK FOUND AT: {row.date} {row.time}')
+                    self.exit_price = exit_ticker.get('c')
+                    self.exit_trade = 'COVER'
                     
+                    self.signals_list.append(
+                                {
+                                    'timestamp': row.timestamp,
+                                    'symbol': self.entry_symbol,
+                                    'price': self.exit_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*self.exit_price if self.exit_price else 0,
+                                    'trade': self.exit_trade,
+                                    'system action': 'SHORT_EXIT' 
+                                }
+                    )
+                    self.reset_all_variables()
+                else:
+                    logger.warning(f'SHORT EXIT TICK FOUND EMPTY AT {row.date} {row.time}')
+                    self.reset_all_variables()
+        
+        if row.c > row.ma:
+            adjusted_timestamp = self.get_resampled_timestamp(row.date, row.time)
+            logger.debug(f'Adjusted Timestamp Acquired: {adjusted_timestamp}')
+            if self.in_position == -1:
+                exit_ticker = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                if exit_ticker:
+                    logger.info(f'SHORT EXIT TICK FOUND AT: {row.date} {row.time}')
+                    self.exit_price = exit_ticker.get('c')
+                    self.exit_trade = 'COVER'
+                    
+                    self.signals_list.append(
+                                {
+                                    'timestamp': row.timestamp,
+                                    'symbol': self.entry_symbol,
+                                    'price': self.exit_price,
+                                    'qty': self.qty,
+                                    'cv': self.qty*self.exit_price if self.exit_price else 0,
+                                    'trade': self.exit_trade,
+                                    'system action': 'SHORT_EXIT' 
+                                }
+                    )
+                    self.reset_all_variables()
+                else:
+                    logger.warning(f'SHORT EXIT TICK FOUND EMPTY AT {row.date} {row.time}')
+                    self.reset_all_variables()
+
         if row.date == self.expiry:
             adjusted_timestamp = self.get_resampled_timestamp(row.date, row.time)
             logger.debug(f'Adjusted Timestamp Acquired: {adjusted_timestamp}')
             if adjusted_timestamp == self.end_time:
+                adjusted_expiry_code = self.expiry_code + 1 if self.expiry_code == 0 else self.expiry_code
                 if self.in_position == -1:
                     logger.debug("SHORT POSITION EXPIRED #####################################")
                     exit_ticker = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
@@ -327,7 +380,7 @@ class PRICEMA(ChakraView):
                         logger.warning(f'EXPIRY EXIT TICK FOUND EMPTY AT {row.date} {row.time}')
                         self.reset_all_variables()
                     
-                    entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'CE', 0)
+                    entry_ticker = self.find_ticker_by_moneyness(self.underlying, adjusted_expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'CE', 0)
                     if entry_ticker:
                         entry_price = entry_ticker.get('c')
                         entry_trade = 'SHORT'
@@ -341,8 +394,8 @@ class PRICEMA(ChakraView):
                                         'symbol': self.entry_symbol,
                                         'price': entry_price,
                                         'qty': self.qty,
-                                        'cv': self.qty*entry_price if self.entry_price else 0,
-                                        'trade': self.entry_trade,
+                                        'cv': self.qty*entry_price if entry_price else 0,
+                                        'trade': entry_trade,
                                         'system action': 'SHORT_ENTRY' 
                                     }
                         )
@@ -374,7 +427,7 @@ class PRICEMA(ChakraView):
                         logger.warning(f'EXPIRY EXIT TICK FOUND EMPTY AT {row.date} {row.time}')
                         self.reset_all_variables()
                     
-                    entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'PE', 0)
+                    entry_ticker = self.find_ticker_by_moneyness(self.underlying, adjusted_expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'PE', 0)
                     if entry_ticker:
                         entry_price = entry_ticker.get('c')
                         entry_trade = 'SHORT'
@@ -388,8 +441,8 @@ class PRICEMA(ChakraView):
                                         'symbol': self.entry_symbol,
                                         'price': entry_price,
                                         'qty': self.qty,
-                                        'cv': self.qty*entry_price if self.entry_price else 0,
-                                        'trade': self.entry_trade,
+                                        'cv': self.qty*entry_price if entry_price else 0,
+                                        'trade': entry_trade,
                                         'system action': 'SHORT_ENTRY' 
                                     }
                         )
