@@ -4,7 +4,7 @@ from kiteconnect import KiteConnect
 import json
 import time
 from direct_redis import DirectRedis
-r = DirectRedis(host='192.168.1.28', port='6379', db=0)
+r = DirectRedis(host='localhost', port='6379', db=0)
 
 class BackFill:
 
