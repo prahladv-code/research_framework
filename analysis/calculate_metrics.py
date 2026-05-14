@@ -1,6 +1,58 @@
 import pandas as pd
 import numpy as np
 
+"""
+Utility module for trade-level and portfolio-level performance analytics.
+
+This module contains the `CalculateMetrics` class, which provides a collection
+of helper functions for calculating realized profit/loss, equity curves,
+risk-adjusted performance metrics, portfolio aggregation statistics,
+correlation matrices, and return distributions for systematic trading
+strategies.
+
+The module supports:
+- Intraday tradesheets
+- Options tradesheets
+- Positional tradesheets
+- Portfolio-level aggregation across multiple strategies
+
+Core functionality includes:
+- Trade pairing logic for BUY/SELL and SHORT/COVER transactions
+- Realized P/L computation
+- Slippage-adjusted equity curve generation
+- CAGR, Calmar ratio, Sortino ratio, payoff ratio, and profit factor
+- Drawdown and drawdown recovery duration analysis
+- Recovery factor computation
+- Monthly return calendar generation
+- Strategy correlation matrix generation
+- Portfolio-level daily equity aggregation
+
+The calculations are designed primarily for backtesting and strategy research
+workflows and assume that trade execution data is already available in a
+structured pandas DataFrame format.
+
+Expected DataFrame columns vary by function but commonly include:
+- timestamp
+- trade
+- price
+- qty
+- symbol
+- cv
+- P/L
+
+Dependencies:
+- pandas
+- numpy
+
+Notes:
+- Most functions operate in-place on copies of DataFrames.
+- Drawdown duration is measured using equity curve peak-to-peak recovery time.
+- Slippage can be modeled either as percentage-based or fixed-point based.
+- Existing logic and calculations are intentionally preserved as-is for
+  research consistency, even where certain financial assumptions may not
+  be theoretically ideal.
+"""
+
 class CalculateMetrics:
     def __init__(self):
         pass
