@@ -1,54 +1,93 @@
+
 import multiprocessing as mp
 from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
+from threading import Event
 from chakraview import STRATEGY_REGISTRY
+import signal
+import sys
 
 uids = [
-    "PRICEMABANDSSHORT_NIFTY_0_33_25_1",
-    "PRICEMABANDSSHORT_NIFTY_0_63_25_1",
-    "PRICEMABANDSSHORT_NIFTY_0_93_25_1",
-    "BOLLINGERBANDS_NIFTY_0_25_30_2_0.1",
-    "BOLLINGERBANDS_NIFTY_0_25_60_2_0.1",
+    'AVWAPV2_NIFTY_25_W_0_0'
 ]
 
+# Global stop event
+STOP_EVENT = mp.Event()
 
-def run_uid(strategy_class, uid):
+
+def signal_handler(sig, frame):
+    """
+    Handles Ctrl+C cleanly
+    """
+    print("\nKeyboard Interrupt Detected. Stopping all processes gracefully...")
+
+    STOP_EVENT.set()
+
+
+def run_uid(strategy_class, uid, stop_event):
     """
     Runs single UID inside a thread
     """
-    strategy = strategy_class()
 
-    print(f"Running {uid}")
+    if stop_event.is_set():
+        return
 
-    strategy.run_backtest(uid)
+    try:
+
+        strategy = strategy_class()
+
+        print(f"Running {uid}")
+
+        strategy.run_backtest(uid)
+
+        if stop_event.is_set():
+            print(f"Stopping {uid}")
+
+    except Exception as e:
+        print(f"Error in {uid}: {e}")
 
 
-def strategy_process(strategy_name, uid_list):
+def strategy_process(strategy_name, uid_list, stop_event):
     """
     One process per strategy
     """
+
     print(f"Started Process: {strategy_name}")
 
     strategy_class = STRATEGY_REGISTRY[strategy_name]
 
-    # Threads inside process
-    with ThreadPoolExecutor(max_workers=len(uid_list)) as executor:
+    try:
 
-        futures = []
+        with ThreadPoolExecutor(max_workers=len(uid_list)) as executor:
 
-        for uid in uid_list:
-            futures.append(
-                executor.submit(
-                    run_uid,
-                    strategy_class,
-                    uid
+            futures = []
+
+            for uid in uid_list:
+
+                if stop_event.is_set():
+                    break
+
+                futures.append(
+                    executor.submit(
+                        run_uid,
+                        strategy_class,
+                        uid,
+                        stop_event
+                    )
                 )
-            )
 
-        for future in futures:
-            future.result()
+            for future in futures:
 
-    print(f"Finished Process: {strategy_name}")
+                if stop_event.is_set():
+                    break
+
+                future.result()
+
+    except KeyboardInterrupt:
+        pass
+
+    finally:
+        print(f"Finished Process: {strategy_name}")
 
 
 def group_uids_by_strategy(uids):
@@ -66,23 +105,62 @@ def group_uids_by_strategy(uids):
 
 def main():
 
+    # Register Ctrl+C handler
+    signal.signal(signal.SIGINT, signal_handler)
+
     grouped = group_uids_by_strategy(uids)
 
     processes = []
 
-    for strategy_name, uid_list in grouped.items():
+    try:
 
-        p = mp.Process(
-            target=strategy_process,
-            args=(strategy_name, uid_list)
-        )
+        for strategy_name, uid_list in grouped.items():
 
-        p.start()
+            if STOP_EVENT.is_set():
+                break
 
-        processes.append(p)
+            p = mp.Process(
+                target=strategy_process,
+                args=(strategy_name, uid_list, STOP_EVENT)
+            )
 
-    for p in processes:
-        p.join()
+            p.start()
+
+            processes.append(p)
+
+        while any(p.is_alive() for p in processes):
+
+            if STOP_EVENT.is_set():
+
+                print("Terminating child processes...")
+
+                for p in processes:
+
+                    if p.is_alive():
+                        p.terminate()
+
+                break
+
+            for p in processes:
+                p.join(timeout=0.5)
+
+    except KeyboardInterrupt:
+
+        print("\nForce stopping all processes...")
+
+        STOP_EVENT.set()
+
+        for p in processes:
+
+            if p.is_alive():
+                p.terminate()
+
+    finally:
+
+        for p in processes:
+            p.join()
+
+        print("All processes stopped cleanly.")
 
 
 if __name__ == "__main__":
@@ -92,101 +170,3 @@ if __name__ == "__main__":
     main()
 
 
-# "VWAP_NIFTY_0_1_0_0"
-# "BOLLINGERBANDS_NIFTY_0_25_60_2_1.5"
-
-        #  "PRICEMABANDS_NIFTY_0_33_25_1",
-        # "PRICEMABANDS_NIFTY_0_63_25_1",
-        # "PRICEMABANDS_NIFTY_0_93_25_1",
-        # "BOLLINGERBANDS_NIFTY_0_25_30_2_0.1",
-        # "BOLLINGERBANDS_NIFTY_0_25_90_2_0.1",
-        # "BOLLINGERBANDS_NIFTY_0_25_30_1.5_0.1",
-        # "BOLLINGERBANDS_NIFTY_0_25_60_1.5_0.1",
-        # "BOLLINGERBANDS_NIFTY_0_25_90_1.5_0.1",
-        # "BOLLINGERBANDS_NIFTY_0_25_30_2_0.05",
-        # "BOLLINGERBANDS_NIFTY_0_25_60_2_0.05",
-        # "BOLLINGERBANDS_NIFTY_0_25_90_2_0.05",
-        # "BOLLINGERBANDS_NIFTY_0_25_30_1.5_0.05",
-        # "BOLLINGERBANDS_NIFTY_0_25_60_1.5_0.05",
-        # "BOLLINGERBANDS_NIFTY_0_25_90_1.5_0.05",
-        # "BTST_NIFTY_1_0_0_0"
-
-
-# ['VWAP_ADANIENT_5_60_3',
-#  'VWAP_ADANIPORTS_5_60_3',
-#  'VWAP_APOLLOHOSP_5_60_3',
-#  'VWAP_ASIANPAINT_5_60_3',
-#  'VWAP_AXISBANK_5_60_3',
-#  'VWAP_BAJAJ-AUTO_5_60_3',
-#  'VWAP_BAJFINANCE_5_60_3',
-#  'VWAP_BAJAJFINSV_5_60_3',
-#  'VWAP_BEL_5_60_3',
-#  'VWAP_BHARTIARTL_5_60_3',
-#  'VWAP_CIPLA_5_60_3',
-#  'VWAP_COALINDIA_5_60_3',
-#  'VWAP_DIVISLAB_5_60_3',
-#  'VWAP_DRREDDY_5_60_3',
-#  'VWAP_EICHERMOT_5_60_3',
-#  'VWAP_GRASIM_5_60_3',
-#  'VWAP_HCLTECH_5_60_3',
-#  'VWAP_HDFCBANK_5_60_3',
-#  'VWAP_HDFCLIFE_5_60_3',
-#  'VWAP_HEROMOTOCO_5_60_3',
-#  'VWAP_HINDALCO_5_60_3',
-#  'VWAP_HINDUNILVR_5_60_3',
-#  'VWAP_ICICIBANK_5_60_3',
-#  'VWAP_INDUSINDBK_5_60_3',
-#  'VWAP_INFY_5_60_3',
-#  'VWAP_ITC_5_60_3',
-#  'VWAP_JIOFIN_5_60_3',
-#  'VWAP_JSWSTEEL_5_60_3',
-#  'VWAP_KOTAKBANK_5_60_3',
-#  'VWAP_LT_5_60_3',
-#  'VWAP_M&M_5_60_3',
-#  'VWAP_MARUTI_5_60_3',
-#  'VWAP_NESTLEIND_5_60_3',
-#  'VWAP_NTPC_5_60_3',
-#  'VWAP_ONGC_5_60_3',
-#  'VWAP_POWERGRID_5_60_3',
-#  'VWAP_RELIANCE_5_60_3',
-#  'VWAP_SBILIFE_5_60_3',
-#  'VWAP_SBIN_5_60_3',
-#  'VWAP_SHRIRAMFIN_5_60_3',
-#  'VWAP_SUNPHARMA_5_60_3',
-#  'VWAP_TATACONSUM_5_60_3',
-#  'VWAP_TATAMOTORS_5_60_3',
-#  'VWAP_TATASTEEL_5_60_3',
-#  'VWAP_TCS_5_60_3',
-#  'VWAP_TECHM_5_60_3',
-#  'VWAP_TITAN_5_60_3',
-#  'VWAP_ULTRACEMCO_5_60_3',
-#  'VWAP_WIPRO_5_60_3',
-#  'VWAP_ZOMATO_5_60_3'] 
-
-# 'IVIX_NIFTY_30_7_20_10_True_3_0',
-# 'IVIX_NIFTY_30_7_15_5_True_3_0',
-# 'IVIX_NIFTY_30_7_25_15_True_3_0',
-# 'IVIX_NIFTY_60_7_20_10_True_3_0',
-# 'IVIX_NIFTY_60_7_15_5_True_3_0',
-# 'IVIX_NIFTY_60_7_25_15_True_3_0',
-
-# "BTST_NIFTY_1_1_0_0_0",
-# "BTST_SENSEX_1_1_0_0_0",
-# "BTST_NIFTY_1_2_0_0_0",
-# "BTST_SENSEX_1_2_0_0_0"
-
-# 'AVWAP_NIFTY_25_W_0_0'
-# 'AVWAP_NIFTY_25_D_0_0',
-# 'AVWAP_NIFTY_25_M_0_0',
-# 'AVWAP_NIFTY_25_Q_0_0'
-# 'AVWAP_NIFTY_25_M_3_0',
-# 'AVWAP_BANKNIFTY_25_M_3_0',
-# 'AVWAP_NIFTY_25_W_0_0',
-
-# 'BTSTOI_NIFTY_1_1.3_0.7_0_0',
-# 'BTSTOI_SENSEX_1_1.2_0.8_0_0',
-# 'BTSTOI_BANKNIFTY_1_1.2_0.8_0_0',
-# 'BTSTOI_NIFTY_1_1.2_0.8_0_0',
-# 'BTSTOI_NIFTY_1_1.5_0.5_0_0',
-# 'BTST_SENSEX_1_1.2_0.8_0_0',
-# 'BTST_NIFTY_1_1.2_0.8_0_0',

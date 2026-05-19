@@ -98,7 +98,7 @@ class ORBSTOCKS(ChakraView):
             return True
     
     def calculate_orb_levels(self, high: float, low: float):
-        logger.info(f'Calculating ORB Levels For Underlying: {self.underlying}. High Input: {high} | Low Input: {low}')
+        logger.debug(f'Calculating ORB Levels For Underlying: {self.underlying}. High Input: {high} | Low Input: {low}')
         if self.high_level is None:
             logger.debug(f'Updating High From {self.high_level} to {high}')
             self.high_level = high
@@ -141,6 +141,9 @@ class ORBSTOCKS(ChakraView):
                 if self.trade_taken:
                     return
             
+            if self.high_level is None or self.low_level is None:
+                return
+            
             # ENTRY
             if row.c > self.high_level:
                 if self.in_position == 0:
@@ -162,7 +165,7 @@ class ORBSTOCKS(ChakraView):
                     entry_trade = 'SHORT'
                     timestamp = f'{row.date} {row.time}'
                     self.stoploss_price = self.high_level
-                    self.target_price = ((self.high_level - self.low_level) * self.target_multiplier) - row.c
+                    self.target_price = row.c - ((self.high_level - self.low_level) * self.target_multiplier)
                     entry = self.place_trade(timestamp, self.underlying, row.c, self.qty, self.qty * row.c, entry_trade, 'SHORT_ENTRY')
                     self.signals.append(entry)
                     logger.info(f'SHORT ENTRY TRADE FOUND AT {row.date} {row.time}')

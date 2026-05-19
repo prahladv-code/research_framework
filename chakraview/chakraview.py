@@ -9,6 +9,7 @@ from chakraview.config import db_paths
 import re
 from chakraview.config import continuous_codes, strike_diff, lot_sizes
 from chakraview.logger import logger
+
 class ChakraView:
     def __init__(self):
         self.daily_tb = duckdb.connect(r"C:\Users\Admin\Desktop\db\historical_db.ddb", read_only=True)
@@ -247,7 +248,28 @@ class ChakraView:
         else:
             self.log.warning(f'Invalid Expiry Found For {symbol}')
             return
+    
+    def get_all_ticks_by_expiry(self, underlying: str, expiry: datetime.date, date: datetime.date, time: datetime.time):
+        date_str = date.strftime('%Y-%m-%d')
+        time_str = time.strftime('%H:%M:%S')
 
+        self.expiry_query = f"""
+        SELECT * FROM "expiry_{expiry}" WHERE date = '{date_str}' AND time = '{time_str}'
+        """
+        try:
+
+            df = self.daily_tb.execute(self.expiry_query).fetchdf()
+            filtered_df = df[df['underlying'] == underlying]
+            if not filtered_df.empty:
+                return filtered_df
+            else:
+                self.log.error(f"No Data Found For Expiry DataFrame At {date} {time}")
+                return pd.DataFrame()
+            
+        except Exception as e:
+            self.log.error(f"Error In Fetching All Ticks From Expiry: {e}")
+            return pd.DataFrame()
+        
 
     def find_ticker_by_moneyness(self, underlying: str, expiry_code: int, date: datetime.date, time: datetime.time, underlying_price, strike_difference, right, moneyness):
         all_timestamp_df = self.get_all_ticks_by_timestamp(underlying, expiry_code, date, time)
@@ -260,6 +282,19 @@ class ChakraView:
             self.log.error(f'No Data For TimeStamp: {date} {time}')
             return {}
         moneyness_dict = moneyness_df.to_dict(orient='records')
+        return moneyness_dict[0]
+    
+    def find_ticker_by_moneyness_dynamic_expiry(self, underlying: str, expiry: datetime.date, date: datetime.date, time: datetime.time, underlying_price, strike_difference, right, moneyness):
+        all_timestamp_df = self.get_all_ticks_by_expiry(underlying, expiry, date, time)
+        if all_timestamp_df.empty:
+            self.log.error(f"Empty Timestamp DF | {date} {time}")
+            return {}
+        strike = self.get_strike_by_moneyness(underlying_price, strike_difference, moneyness, right)
+        moneyness_df = all_timestamp_df[(all_timestamp_df['right'] == right.upper()) & (all_timestamp_df['strike'] == strike)]
+        if moneyness_df.empty:
+            self.log.error(f'No Data For TimeStamp: {date} {time}')
+            return {}
+        moneyness_dict = moneyness_df.to_dict(orient = 'records')
         return moneyness_dict[0]
 
     def find_ticker_by_premium(self, underlying: str, expiry_code: int, date, time, underlying_price, right, premium_val, atm_filter=False):
@@ -332,4 +367,5 @@ class ChakraView:
             'trade': trade,
             'system_action': system_action
         }
+    
     
