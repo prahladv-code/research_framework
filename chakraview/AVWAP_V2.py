@@ -159,39 +159,100 @@ class AVWAPV2(ChakraView):
         adjusted_timestamp = self.get_resampled_tick(row.date, row.time)
         current_timestamp = f'{row.date} {row.time}'
         weekday = self._find_current_day(row.date)
-        spot_tick = self.get_spot_tick(self.underlying, 0, row.date, row.time)
+        spot_tick = self.get_spot_tick(self.underlying, 0, row.date, adjusted_timestamp)
         spot_price = spot_tick.get('c') if spot_tick else None
         underlying_price = spot_price if spot_price else row.c
         if weekday == 'monday':
-            if self.in_position == 0:
                 if row.c > avwap_level:
-                    self.logger.info(f'PUT SHORT ENTRY SIGNAL FOUND AT: {current_timestamp}')
-                    entry_tick = self.find_ticker_by_moneyness(self.underlying, self.expiry_code + 1, row.date, adjusted_timestamp, underlying_price, self.strike_diff, 'PE', self.moneyness)
-                    if entry_tick:
-                        self.entry_symbol = entry_tick['symbol']
-                        self.expiry = entry_tick['expiry'].date()
-                        entry_price = entry_tick['c']
-                        entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'SHORT', 'SHORT_ENTRY')
-                        self.signal_list.append(entry_trade)
-                        self.in_position = 1
-                    else:
-                        self.logger.warning(f'Entry Tick Found Empty At {current_timestamp}.')
-                        self.reset_all_variables()
+                    if self.in_position == -1:
+                        self.logger.info(f"CALL SHORT EXIT SIGNAL FOUND AT: {current_timestamp}")
+                        exit_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                        if exit_tick:
+                            exit_price = exit_tick['c']
+                            exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'COVER', 'SHORT_EXIT')
+                            self.signal_list.append(exit_trade)
+                        else:
+                            self.logger.warning(f'Exit Tick Found Empty At: {current_timestamp}.')
+                            self.reset_all_variables()
+                        
+                        self.logger.info(f'PUT SHORT ENTRY SIGNAL FOUND AT: {current_timestamp}')
+                        entry_tick = self.find_ticker_by_moneyness(self.underlying, self.expiry_code + 1, row.date, adjusted_timestamp, underlying_price, self.strike_diff, 'PE', self.moneyness)
+                        if entry_tick:
+                            self.entry_symbol = entry_tick['symbol']
+                            if isinstance(entry_tick['expiry'], pd.Timestamp):
+                                self.expiry = entry_tick['expiry'].date()
+                            else:
+                                self.expiry = entry_tick['expiry']
+                            entry_price = entry_tick['c']
+                            entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'SHORT', 'SHORT_ENTRY')
+                            self.signal_list.append(entry_trade)
+                            self.in_position = 1
+                        else:
+                            self.logger.warning(f'Entry Tick Found Empty At {current_timestamp}.')
+                            self.reset_all_variables()
+
+                    elif self.in_position == 0:
+                        self.logger.info(f'PUT SHORT ENTRY SIGNAL FOUND AT: {current_timestamp}')
+                        entry_tick = self.find_ticker_by_moneyness(self.underlying, self.expiry_code + 1, row.date, adjusted_timestamp, underlying_price, self.strike_diff, 'PE', self.moneyness)
+                        if entry_tick:
+                            self.entry_symbol = entry_tick['symbol']
+                            if isinstance(entry_tick['expiry'], pd.Timestamp):
+                                self.expiry = entry_tick['expiry'].date()
+                            else:
+                                self.expiry = entry_tick['expiry']
+                            entry_price = entry_tick['c']
+                            entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'SHORT', 'SHORT_ENTRY')
+                            self.signal_list.append(entry_trade)
+                            self.in_position = 1
+                        else:
+                            self.logger.warning(f'Entry Tick Found Empty At {current_timestamp}.')
+                            self.reset_all_variables()
 
                 elif row.c < avwap_level:
-                    self.logger.info(f'CALL SHORT ENTRY SIGNAL FOUND AT: {current_timestamp}')
-                    entry_tick = self.find_ticker_by_moneyness(self.underlying, self.expiry_code + 1, row.date, adjusted_timestamp, underlying_price, self.strike_diff, 'CE', self.moneyness)
-                    if entry_tick:
-                        self.entry_symbol = entry_tick['symbol']
-                        self.expiry = entry_tick['expiry'].date()
-                        entry_price = entry_tick['c']
-                        entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'SHORT', 'SHORT_ENTRY')
-                        self.signal_list.append(entry_trade)
-                        self.in_position = -1
-                    else:
-                        self.logger.warning(f'Entry Tick Found Empty At {current_timestamp}.')
-                        self.reset_all_variables()
-        
+                    if self.in_position == 1:
+                        self.logger.info(f"PUT SHORT EXIT SIGNAL FOUND AT: {current_timestamp}")
+                        exit_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                        
+                        if exit_tick:
+                            exit_price = exit_tick['c']
+                            exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'COVER', 'SHORT_EXIT')
+                            self.signal_list.append(exit_trade)
+                        else:
+                            self.logger.warning(f'Exit Tick Found Empty At: {current_timestamp}.')
+                            self.reset_all_variables()
+                        self.logger.info(f'CALL SHORT ENTRY SIGNAL FOUND AT: {current_timestamp}')
+                        entry_tick = self.find_ticker_by_moneyness(self.underlying, self.expiry_code + 1, row.date, adjusted_timestamp, underlying_price, self.strike_diff, 'CE', self.moneyness)
+                        if entry_tick:
+                            self.entry_symbol = entry_tick['symbol']
+                            if isinstance(entry_tick['expiry'], pd.Timestamp):
+                                self.expiry = entry_tick['expiry'].date()
+                            else:
+                                self.expiry = entry_tick['expiry']
+                            entry_price = entry_tick['c']
+                            entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'SHORT', 'SHORT_ENTRY')
+                            self.signal_list.append(entry_trade)
+                            self.in_position = -1
+                        else:
+                            self.logger.warning(f'Entry Tick Found Empty At {current_timestamp}.')
+                            self.reset_all_variables()
+
+                    elif self.in_position == 0:
+                        self.logger.info(f'CALL SHORT ENTRY SIGNAL FOUND AT: {current_timestamp}')
+                        entry_tick = self.find_ticker_by_moneyness(self.underlying, self.expiry_code + 1, row.date, adjusted_timestamp, underlying_price, self.strike_diff, 'CE', self.moneyness)
+                        if entry_tick:
+                            self.entry_symbol = entry_tick['symbol']
+                            if isinstance(entry_tick['expiry'], pd.Timestamp):
+                                self.expiry = entry_tick['expiry'].date()
+                            else:
+                                self.expiry = entry_tick['expiry']
+                            entry_price = entry_tick['c']
+                            entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'SHORT', 'SHORT_ENTRY')
+                            self.signal_list.append(entry_trade)
+                            self.in_position = -1
+                        else:
+                            self.logger.warning(f'Entry Tick Found Empty At {current_timestamp}.')
+                            self.reset_all_variables()
+
         if weekday not in ['monday', 'friday']:
             if self.expiry is not None:
                 if row.c > avwap_level:
@@ -207,7 +268,7 @@ class AVWAPV2(ChakraView):
                             self.reset_all_variables()
                         
                         self.logger.info(f'PUT SHORT ENTRY SIGNAL FOUND AT: {current_timestamp}')
-                        entry_tick = self.find_ticker_by_moneyness_dynamic_expiry(self.underlying, self.expiry, row.date, row.time, underlying_price, self.strike_diff, 'PE', self.moneyness)
+                        entry_tick = self.find_ticker_by_moneyness_dynamic_expiry(self.underlying, self.expiry, row.date, adjusted_timestamp, underlying_price, self.strike_diff, 'PE', self.moneyness)
                         if entry_tick:
                             self.entry_symbol = entry_tick['symbol']
                             entry_price = entry_tick['c']
@@ -232,10 +293,13 @@ class AVWAPV2(ChakraView):
                             self.reset_all_variables()
                         
                         self.logger.info(f'CALL SHORT ENTRY SIGNAL FOUND AT: {current_timestamp}')
-                        entry_tick = self.find_ticker_by_moneyness_dynamic_expiry(self.underlying, self.expiry, row.date, row.time, underlying_price, self.strike_diff, 'CE', self.moneyness)
+                        entry_tick = self.find_ticker_by_moneyness_dynamic_expiry(self.underlying, self.expiry, row.date, adjusted_timestamp, underlying_price, self.strike_diff, 'CE', self.moneyness)
                         if entry_tick:
                             self.entry_symbol = entry_tick['symbol']
-                            self.expiry = entry_tick['expiry'].date()
+                            if isinstance(entry_tick['expiry'], pd.Timestamp):
+                                self.expiry = entry_tick['expiry'].date()
+                            else:
+                                self.expiry = entry_tick['expiry']
                             entry_price = entry_tick['c']
                             entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'SHORT', 'SHORT_ENTRY')
                             self.signal_list.append(entry_trade)
@@ -245,6 +309,33 @@ class AVWAPV2(ChakraView):
                             self.reset_all_variables()
                 
         if weekday == 'friday':
+            if row.c > avwap_level:
+                if self.in_position == -1:
+                    self.logger.info(f"CALL SHORT EXIT SIGNAL FOUND AT: {current_timestamp}")
+                    exit_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                    if exit_tick:
+                        exit_price = exit_tick['c']
+                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'COVER', 'SHORT_EXIT')
+                        self.signal_list.append(exit_trade)
+                        self.reset_all_variables()
+                    else:
+                        self.logger.warning(f'Exit Tick Found Empty At: {current_timestamp}.')
+                        self.reset_all_variables()
+            
+            if row.c < avwap_level:
+                if self.in_position == 1:
+                    self.logger.info(f"PUT SHORT EXIT SIGNAL FOUND AT: {current_timestamp}")
+                    exit_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                    
+                    if exit_tick:
+                        exit_price = exit_tick['c']
+                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'COVER', 'SHORT_EXIT')
+                        self.signal_list.append(exit_trade)
+                        self.reset_all_variables()
+                    else:
+                        self.logger.warning(f'Exit Tick Found Empty At: {current_timestamp}.')
+                        self.reset_all_variables()
+                        
             if adjusted_timestamp == self.end:
                 if self.in_position == 1:
                     self.logger.info(f"PUT SHORT EXIT SIGNAL FOUND AT: {current_timestamp}")
@@ -286,6 +377,10 @@ class AVWAPV2(ChakraView):
         self.logger.info('##############################BACKTEST COMPLETE############################')
 
 
+# if __name__ == '__main__':
+#     vwap = AVWAPV2()
+#     vwap.run_backtest('AVWAPV2_NIFTY_25_W_0_0')
+    
 
 
             

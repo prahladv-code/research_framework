@@ -8,7 +8,7 @@ import signal
 import sys
 
 uids = [
-    'AVWAPV2_NIFTY_25_W_0_0'
+    'AVWAPV3_NIFTY_25_W_0_0'
 ]
 
 # Global stop event
