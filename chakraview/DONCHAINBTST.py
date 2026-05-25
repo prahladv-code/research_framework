@@ -11,10 +11,10 @@ class DONCHAIN(ChakraView):
 
     def __init__(self):
         super().__init__()
-        self.reset_all_variabes()
+        self.reset_all_variables()
         self.calc = CalculateMetrics()
     
-    def reset_all_variabes(self):
+    def reset_all_variables(self):
         self.in_position = 0
         self.entry_symbol = None
         self.expiry = None
@@ -113,7 +113,14 @@ class DONCHAIN(ChakraView):
 
                         if row.date == self.expiry:
                             logger.info(f'ENTRY SIGNAL FOUND ON EXPIRY DAY. TAKING NEXT EXPIRY.')
-                            entry_tick = self.find_ticker_by_moneyness(self.underlying, self.expiry_code + 1, row.date, adjusted_timestamp, row.c, self.strike_diff, 'CE', self.moneyness)
+                            next_entry_tick = self.find_ticker_by_moneyness(self.underlying, self.expiry_code + 1, row.date, adjusted_timestamp, row.c, self.strike_diff, 'CE', self.moneyness)
+
+                            if not next_entry_tick:
+                                logger.warning(f"ENTRY TICK FOUND EMPTY AT: {current_timestamp}")
+                                self.reset_all_variables()
+                                return
+                            
+                            entry_tick = next_entry_tick
                         
                         logger.info(f'CALL LONG SIGNAL FOUND AT: {current_timestamp}')
                         entry_price = entry_tick.get('c')
@@ -124,7 +131,7 @@ class DONCHAIN(ChakraView):
                         self.in_position = 1
                     else:
                         logger.warning(f'ENTRY TICK FOUND EMPTY AT: {current_timestamp}')
-                        self.reset_all_variabes()
+                        self.reset_all_variables()
 
                 elif row.c < row.lower_channel:
                     entry_tick = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'PE', self.moneyness)
@@ -133,7 +140,14 @@ class DONCHAIN(ChakraView):
 
                         if row.date == self.expiry:
                             logger.info(f'ENTRY SIGNAL FOUND ON EXPIRY DAY. TAKING NEXT EXPIRY.')
-                            entry_tick = self.find_ticker_by_moneyness(self.underlying, self.expiry_code + 1, row.date, adjusted_timestamp, row.c, self.strike_diff, 'PE', self.moneyness)
+                            next_entry_tick = self.find_ticker_by_moneyness(self.underlying, self.expiry_code + 1, row.date, adjusted_timestamp, row.c, self.strike_diff, 'PE', self.moneyness)
+
+                            if not next_entry_tick:
+                                logger.warning(f"ENTRY TICK FOUND EMPTY AT: {current_timestamp}")
+                                self.reset_all_variables()
+                                return
+                            
+                            entry_tick = next_entry_tick
 
                         logger.info(f'PUT LONG SIGNAL FOUND AT: {current_timestamp}')
                         entry_price = entry_tick.get('c')
@@ -143,8 +157,8 @@ class DONCHAIN(ChakraView):
                         self.signals.append(entry_trade)
                         self.in_position = -1
                     else:
-                        logger.warning(f'ENTRY TOCK FOUND EMPTY AT: {current_timestamp}')
-                        self.reset_all_variabes()
+                        logger.warning(f'ENTRY TICK FOUND EMPTY AT: {current_timestamp}')
+                        self.reset_all_variables()
         
         #EXIT
         if row.time == self.start:
@@ -156,10 +170,10 @@ class DONCHAIN(ChakraView):
                     exit_price = exit_tick.get('c')
                     exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'SELL', 'LONG_EXIT')
                     self.signals.append(exit_trade)
-                    self.reset_all_variabes()
+                    self.reset_all_variables()
                 else:
                     logger.warning(f'EXIT TICK FOUND EMPTY AT: {current_timestamp}')
-                    self.reset_all_variabes()
+                    self.reset_all_variables()
             
             elif self.in_position == -1:
                 exit_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
@@ -168,10 +182,10 @@ class DONCHAIN(ChakraView):
                     exit_price = exit_tick.get('c')
                     exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'SELL', 'LONG_EXIT')
                     self.signals.append(exit_trade)
-                    self.reset_all_variabes()
+                    self.reset_all_variables()
                 else:
                     logger.warning(f'EXIT TICK FOUND EMPTY AT: {current_timestamp}')
-                    self.reset_all_variabes()
+                    self.reset_all_variables()
 
     def run_backtest(self, uid: str):
         self.set_params_from_uid(uid)
@@ -186,5 +200,3 @@ class DONCHAIN(ChakraView):
         tradebook = self.calc.calculate_pl_in_opt_tradesheet(tradesheet)
         tradebook.to_parquet(f"C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/donchainbtst/{uid}.parquet")
     
-
-
