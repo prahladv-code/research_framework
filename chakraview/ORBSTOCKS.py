@@ -243,4 +243,8 @@ class ORBSTOCKS(ChakraView):
         tradesheet.to_parquet(f"C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/orbstocks/{uid}.parquet")
         logger.info("+++++++++++++++++++++++++++++++++++++++++++++++BACKTEST COMPLETE+++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
         
-        
+
+
+if __name__ == '__main__':
+    orb = ORBSTOCKS()
+    orb.run_backtest('ORBSTOCKS_ADANIENT_5_2_15_False')
