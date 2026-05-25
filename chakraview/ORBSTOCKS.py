@@ -124,6 +124,7 @@ class ORBSTOCKS(ChakraView):
         new_day = self.check_new_day(row.date)
 
         if new_day:
+            print(f'NEW DAY ! TIMESTAMP: {row.date} {row.time}')
             self.reset_all_variables()
             self.trade_taken = False
 
@@ -145,33 +146,36 @@ class ORBSTOCKS(ChakraView):
                 return
             
             # ENTRY
-            if row.c > self.high_level:
-                if self.in_position == 0:
-                    self.entry_symbol = self.underlying
-                    self.trade_taken = True
-                    entry_trade = 'BUY'
-                    timestamp = f'{row.date} {row.time}'
-                    self.stoploss_price = self.low_level
-                    self.target_price = ((self.high_level - self.low_level) * self.target_multiplier) + row.c
-                    entry = self.place_trade(timestamp, self.underlying, row.c, self.qty, self.qty * row.c, entry_trade, 'LONG_ENTRY')
-                    self.signals.append(entry)
-                    logger.info(f'LONG ENTRY TRADE FOUND AT {row.date} {row.time}')
-                    self.in_position = 1
-            
-            if row.c < self.low_level:
-                if self.in_position == 0:
-                    self.entry_symbol = self.underlying
-                    self.trade_taken = True
-                    entry_trade = 'SHORT'
-                    timestamp = f'{row.date} {row.time}'
-                    self.stoploss_price = self.high_level
-                    self.target_price = row.c - ((self.high_level - self.low_level) * self.target_multiplier)
-                    entry = self.place_trade(timestamp, self.underlying, row.c, self.qty, self.qty * row.c, entry_trade, 'SHORT_ENTRY')
-                    self.signals.append(entry)
-                    logger.info(f'SHORT ENTRY TRADE FOUND AT {row.date} {row.time}')
-                    self.in_position = -1
+            if self.in_position == 0:
+                
+                if row.c > self.high_level:
+                        self.entry_symbol = self.underlying
+                        self.trade_taken = True
+                        entry_trade = 'BUY'
+                        timestamp = f'{row.date} {row.time}'
+                        self.stoploss_price = self.low_level
+                        self.target_price = ((self.high_level - self.low_level) * self.target_multiplier) + row.c
+                        entry = self.place_trade(timestamp, self.underlying, row.c, self.qty, self.qty * row.c, entry_trade, 'LONG_ENTRY')
+                        self.signals.append(entry)
+                        logger.info(f'LONG ENTRY TRADE FOUND AT {row.date} {row.time}')
+                        self.in_position = 1
+                        print(f'IN POSITION DEBUG: {self.in_position}')      
+                
+                if row.c < self.low_level:
+                        self.entry_symbol = self.underlying
+                        self.trade_taken = True
+                        entry_trade = 'SHORT'
+                        timestamp = f'{row.date} {row.time}'
+                        self.stoploss_price = self.high_level
+                        self.target_price = row.c - ((self.high_level - self.low_level) * self.target_multiplier)
+                        entry = self.place_trade(timestamp, self.underlying, row.c, self.qty, self.qty * row.c, entry_trade, 'SHORT_ENTRY')
+                        self.signals.append(entry)
+                        logger.info(f'SHORT ENTRY TRADE FOUND AT {row.date} {row.time}')
+                        self.in_position = -1
+                        print(f'IN POSITION DEBUG: {self.in_position}')
             
             if self.in_position == 0:
+                print("IN POSITION FAULT BEING TRIGGERED.")
                 return
             
             # EXIT
