@@ -151,7 +151,7 @@ def downloads_section():
     if st.sidebar.checkbox("Go to Downloads"):
         strat = st.selectbox(
             "Select a Strat to Download Tradebooks:",
-            ["PCCO_SPOT", "PCCO_OPT", "PRICEMA", "IVIX", "PRICEMACLOSEFILTER", 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'VWAPSTOCKS', 'BTST', 'AVWAP', 'DONCHAINBTST']
+            ["PCCO_SPOT", "PCCO_OPT", "PRICEMA", "IVIX", "PRICEMACLOSEFILTER", 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAINBTST', 'ORBSTOCKS']
         )
 
         if strat == "PCCO_SPOT":
@@ -172,14 +172,14 @@ def downloads_section():
             folder_path = './tradesheets/bollingershort/'
         elif strat == 'PRICEMABANDS':
             folder_path = './tradesheets/pricemabands/'
-        elif strat == 'VWAPSTOCKS':
-            folder_path = './tradesheets/vwapstocks/'
         elif strat == 'BTST':
             folder_path = './tradesheets/btst/'
         elif strat == 'AVWAP':
             folder_path = './tradesheets/avwap/'
         elif strat == 'DONCHAINBTST':
             folder_path = './tradesheets/donchainbtst/'
+        elif strat == 'ORBSTOCKS':
+            folder_path = './tradesheets/orbstocks/'
         
         
         # Check if folder exists
@@ -414,13 +414,13 @@ def portfolios_driver():
         'VWAPTRAIL': './tradesheets/vwaptrail/',
         'BOLLINGERSHORT': './tradesheets/bollingershort/',
         'PRICEMABANDS': './tradesheets/pricemabands/',
-        'VWAPSTOCKS': './tradesheets/vwapstocks/',
         'BTST': './tradesheets/btst/',
         'AVWAP': './tradesheets/avwap/',
-        'DONCHAINBTST': './tradesheets/donchainbtst/'
+        'DONCHAINBTST': './tradesheets/donchainbtst/',
+        'ORBSTOCKS': './tradesheets/orbstocks/'
 
     }
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'VWAPSTOCKS', 'BTST', 'AVWAP', 'DONCHAINBTST']
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAINBTST', 'ORBSTOCKS']
     
     # Select strategies
     strats = st.multiselect('Strategies', strategies)
@@ -514,7 +514,7 @@ def portfolios_driver():
         
 
 def strategy_driver():
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'VWAPSTOCKS', 'BTST', 'AVWAP', 'DONCHAINBTST']  # both options in the same radio
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAINBTST', 'ORBSTOCKS']  # both options in the same radio
     selected_strat = st.sidebar.radio('Select A Strategy', strategies, key='pcco_strategy')
     folder_paths = {
         'PCCO_SPOT': './tradesheets/pcco/',
@@ -528,10 +528,10 @@ def strategy_driver():
         'VWAPTRAIL': './tradesheets/vwaptrail/',
         'BOLLINGERSHORT': './tradesheets/bollingershort/',
         'PRICEMABANDS': './tradesheets/pricemabands/',
-        'VWAPSTOCKS': './tradesheets/vwapstocks/',
         'BTST': './tradesheets/btst/',
         'AVWAP': './tradesheets/avwap/',
-        'DONCHAINBTST': './tradesheets/donchainbtst/'
+        'DONCHAINBTST': './tradesheets/donchainbtst/',
+        'ORBSTOCKS': './tradesheets/orbstocks/'
     }
 
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
@@ -637,15 +637,6 @@ def strategy_driver():
         calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
 
-    elif selected_strat == 'VWAPSTOCKS':
-        folder_path = folder_paths.get(selected_strat)
-        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
-        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
-        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
-        display_correlation_matrix(folder_path)
-        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
-        calculate_pl_distribution(folder_path, initial_margin)
-
     elif selected_strat == 'BTST':
         folder_path = folder_paths.get(selected_strat)
         plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
@@ -672,8 +663,15 @@ def strategy_driver():
         display_correlation_matrix(folder_path)
         calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
-
-        
+    
+    elif selected_strat == 'ORBSTOCKS':
+        folder_path = folder_paths.get(selected_strat)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_correlation_matrix(folder_path)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_pl_distribution(folder_path, initial_margin)
 
 
 # C:/Users/admin/VSCode/tradesheets/pcco/
