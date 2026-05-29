@@ -176,7 +176,7 @@ def downloads_section():
             folder_path = './tradesheets/btst/'
         elif strat == 'AVWAP':
             folder_path = './tradesheets/avwap/'
-        elif strat == 'DONCHAINBTST':
+        elif strat == 'DONCHAIN':
             folder_path = './tradesheets/donchain/'
         elif strat == 'ORBSTOCKS':
             folder_path = './tradesheets/orbstocks/'
@@ -416,7 +416,7 @@ def portfolios_driver():
         'PRICEMABANDS': './tradesheets/pricemabands/',
         'BTST': './tradesheets/btst/',
         'AVWAP': './tradesheets/avwap/',
-        'DONCHAINBTST': './tradesheets/donchain/',
+        'DONCHAIN': './tradesheets/donchain/',
         'ORBSTOCKS': './tradesheets/orbstocks/'
 
     }
@@ -530,7 +530,7 @@ def strategy_driver():
         'PRICEMABANDS': './tradesheets/pricemabands/',
         'BTST': './tradesheets/btst/',
         'AVWAP': './tradesheets/avwap/',
-        'DONCHAINBTST': './tradesheets/donchain/',
+        'DONCHAIN': './tradesheets/donchain/',
         'ORBSTOCKS': './tradesheets/orbstocks/'
     }
 
