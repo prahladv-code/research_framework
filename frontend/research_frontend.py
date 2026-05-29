@@ -151,7 +151,7 @@ def downloads_section():
     if st.sidebar.checkbox("Go to Downloads"):
         strat = st.selectbox(
             "Select a Strat to Download Tradebooks:",
-            ["PCCO_SPOT", "PCCO_OPT", "PRICEMA", "IVIX", "PRICEMACLOSEFILTER", 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAINBTST', 'ORBSTOCKS']
+            ["PCCO_SPOT", "PCCO_OPT", "PRICEMA", "IVIX", "PRICEMACLOSEFILTER", 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS']
         )
 
         if strat == "PCCO_SPOT":
@@ -177,7 +177,7 @@ def downloads_section():
         elif strat == 'AVWAP':
             folder_path = './tradesheets/avwap/'
         elif strat == 'DONCHAINBTST':
-            folder_path = './tradesheets/donchainbtst/'
+            folder_path = './tradesheets/donchain/'
         elif strat == 'ORBSTOCKS':
             folder_path = './tradesheets/orbstocks/'
         
@@ -416,11 +416,11 @@ def portfolios_driver():
         'PRICEMABANDS': './tradesheets/pricemabands/',
         'BTST': './tradesheets/btst/',
         'AVWAP': './tradesheets/avwap/',
-        'DONCHAINBTST': './tradesheets/donchainbtst/',
+        'DONCHAINBTST': './tradesheets/donchain/',
         'ORBSTOCKS': './tradesheets/orbstocks/'
 
     }
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAINBTST', 'ORBSTOCKS']
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS']
     
     # Select strategies
     strats = st.multiselect('Strategies', strategies)
@@ -514,7 +514,7 @@ def portfolios_driver():
         
 
 def strategy_driver():
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAINBTST', 'ORBSTOCKS']  # both options in the same radio
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS']  # both options in the same radio
     selected_strat = st.sidebar.radio('Select A Strategy', strategies, key='pcco_strategy')
     folder_paths = {
         'PCCO_SPOT': './tradesheets/pcco/',
@@ -530,7 +530,7 @@ def strategy_driver():
         'PRICEMABANDS': './tradesheets/pricemabands/',
         'BTST': './tradesheets/btst/',
         'AVWAP': './tradesheets/avwap/',
-        'DONCHAINBTST': './tradesheets/donchainbtst/',
+        'DONCHAINBTST': './tradesheets/donchain/',
         'ORBSTOCKS': './tradesheets/orbstocks/'
     }
 
@@ -655,7 +655,7 @@ def strategy_driver():
         calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
 
-    elif selected_strat == 'DONCHAINBTST':
+    elif selected_strat == 'DONCHAIN':
         folder_path = folder_paths.get(selected_strat)
         plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
