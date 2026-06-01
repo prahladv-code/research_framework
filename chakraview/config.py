@@ -4,8 +4,8 @@ import redis
 r = redis.Redis('localhost', 6379, 0)
 sessions = {
     'NIFTY': {
-        'start': datetime.time(9, 15),
-        'end': datetime.time(15, 29)
+        'start': datetime.time(9, 15, 0),
+        'end': datetime.time(15, 29, 0)
     },
     'SENSEX': {
         'start': datetime.time(9, 15),

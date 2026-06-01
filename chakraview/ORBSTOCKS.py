@@ -124,7 +124,6 @@ class ORBSTOCKS(ChakraView):
         new_day = self.check_new_day(row.date)
 
         if new_day:
-            print(f'NEW DAY ! TIMESTAMP: {row.date} {row.time}')
             self.reset_all_variables()
             self.trade_taken = False
 
@@ -149,33 +148,30 @@ class ORBSTOCKS(ChakraView):
             if self.in_position == 0:
                 
                 if row.c > self.high_level:
-                        self.entry_symbol = self.underlying
-                        self.trade_taken = True
-                        entry_trade = 'BUY'
-                        timestamp = f'{row.date} {row.time}'
-                        self.stoploss_price = self.low_level
-                        self.target_price = ((self.high_level - self.low_level) * self.target_multiplier) + row.c
-                        entry = self.place_trade(timestamp, self.underlying, row.c, self.qty, self.qty * row.c, entry_trade, 'LONG_ENTRY')
-                        self.signals.append(entry)
-                        logger.info(f'LONG ENTRY TRADE FOUND AT {row.date} {row.time}')
-                        self.in_position = 1
-                        print(f'IN POSITION DEBUG: {self.in_position}')      
+                    self.entry_symbol = self.underlying
+                    entry_trade = 'BUY'
+                    timestamp = f'{row.date} {row.time}'
+                    self.stoploss_price = self.low_level
+                    self.target_price = ((self.high_level - self.low_level) * self.target_multiplier) + row.c
+                    entry = self.place_trade(timestamp, self.underlying, row.c, self.qty, self.qty * row.c, entry_trade, 'LONG_ENTRY')
+                    self.signals.append(entry)
+                    logger.info(f'LONG ENTRY TRADE FOUND AT {row.date} {row.time}')
+                    self.in_position = 1
+                          
                 
                 if row.c < self.low_level:
-                        self.entry_symbol = self.underlying
-                        self.trade_taken = True
-                        entry_trade = 'SHORT'
-                        timestamp = f'{row.date} {row.time}'
-                        self.stoploss_price = self.high_level
-                        self.target_price = row.c - ((self.high_level - self.low_level) * self.target_multiplier)
-                        entry = self.place_trade(timestamp, self.underlying, row.c, self.qty, self.qty * row.c, entry_trade, 'SHORT_ENTRY')
-                        self.signals.append(entry)
-                        logger.info(f'SHORT ENTRY TRADE FOUND AT {row.date} {row.time}')
-                        self.in_position = -1
-                        print(f'IN POSITION DEBUG: {self.in_position}')
+                    self.entry_symbol = self.underlying
+                    entry_trade = 'SHORT'
+                    timestamp = f'{row.date} {row.time}'
+                    self.stoploss_price = self.high_level
+                    self.target_price = row.c - ((self.high_level - self.low_level) * self.target_multiplier)
+                    entry = self.place_trade(timestamp, self.underlying, row.c, self.qty, self.qty * row.c, entry_trade, 'SHORT_ENTRY')
+                    self.signals.append(entry)
+                    logger.info(f'SHORT ENTRY TRADE FOUND AT {row.date} {row.time}')
+                    self.in_position = -1
+                        
             
             if self.in_position == 0:
-                print("IN POSITION FAULT BEING TRIGGERED.")
                 return
             
             # EXIT
@@ -187,6 +183,7 @@ class ORBSTOCKS(ChakraView):
                     self.signals.append(exit)
                     logger.info(f'LONG STOPLOSS SIGNAL FOUND AT {row.date} {row.time}')
                     self.reset_all_variables()
+                    self.trade_taken = True
             
             if self.in_position == -1:
                 if row.c > self.stoploss_price:
@@ -196,6 +193,7 @@ class ORBSTOCKS(ChakraView):
                     logger.info(f'SHORT STOPLOSS SIGNAL FOUND AT {row.date} {row.time}')
                     self.signals.append(exit)
                     self.reset_all_variables()
+                    self.trade_taken = True
             
             if self.in_position == 1:
                 if row.c > self.target_price:
@@ -214,6 +212,7 @@ class ORBSTOCKS(ChakraView):
                     logger.info(f'SHORT TARGET SIGNAL FOUND AT {row.date} {row.time}')
                     self.signals.append(exit)
                     self.reset_all_variables()
+                    self.trade_taken = True
             
             # TIME_EXIT
             if adjusted_timestamp == self.end:
@@ -224,6 +223,7 @@ class ORBSTOCKS(ChakraView):
                     self.signals.append(exit)
                     logger.info(f'LONG TIME SIGNAL FOUND AT {row.date} {row.time}')
                     self.reset_all_variables()
+                    self.trade_taken = True
 
                 elif self.in_position == -1:
                     exit_trade = 'COVER'
@@ -232,6 +232,7 @@ class ORBSTOCKS(ChakraView):
                     logger.info(f'SHORT TIME SIGNAL FOUND AT {row.date} {row.time}')
                     self.signals.append(exit)
                     self.reset_all_variables()
+                    self.trade_taken = True
 
     def run_backtest(self, uid: str):
         self.set_params_from_uid(uid)
@@ -249,6 +250,6 @@ class ORBSTOCKS(ChakraView):
         
 
 
-if __name__ == '__main__':
-    orb = ORBSTOCKS()
-    orb.run_backtest('ORBSTOCKS_ADANIENT_5_2_15_False')
+# if __name__ == '__main__':
+#     orb = ORBSTOCKS()
+#     orb.run_backtest('ORBSTOCKS_ADANIENT_5_2_15_False')

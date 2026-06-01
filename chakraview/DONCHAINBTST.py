@@ -13,14 +13,15 @@ class DONCHAIN(ChakraView):
         super().__init__()
         self.reset_all_variables()
         self.calc = CalculateMetrics()
+        self.signals = []
     
     def reset_all_variables(self):
         self.in_position = 0
         self.entry_symbol = None
         self.expiry = None
-        self.signals = []
         
-
+        
+    # 'DONCHAINBTST_NIFTY_25_20_1_0_0'
     def set_params_from_uid(self, uid: str):
         uid_split = uid.split('_')
         self.strat = uid_split.pop(0)
@@ -88,10 +89,10 @@ class DONCHAIN(ChakraView):
     def calculate_donchain_channel(self, df: pd.DataFrame) -> pd.DataFrame:
 
         """Calculates Donchain Channel Indicator For Any Time Series DataFrame."""
-        df['upper_channel'] = df['h'].rolling(20).max()
-        df['upper_channel'] = df['upper_channel'].shift()
-        df['lower_channel'] = df['l'].rolling(20).min()
-        df['lower_channel'] = df['lower_channel'].shift()
+        df['upper_channel'] = df['h'].rolling(self.indicator_period).max()
+        df['upper_channel'] = df['upper_channel'].shift(self.offset)
+        df['lower_channel'] = df['l'].rolling(self.indicator_period).min()
+        df['lower_channel'] = df['lower_channel'].shift(self.offset)
         
         return df
     
@@ -199,4 +200,10 @@ class DONCHAIN(ChakraView):
         tradesheet = pd.DataFrame(self.signals)
         tradebook = self.calc.calculate_pl_in_opt_tradesheet(tradesheet)
         tradebook.to_parquet(f"C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/donchainbtst/{uid}.parquet")
+        logger.info("##########################BACKTEST COMPLETE###################################")
+
+
+# if __name__ == '__main__':
+#     dc = DONCHAIN()
+#     dc.run_backtest('DONCHAINBTST_NIFTY_25_30_1_0_0')
     
