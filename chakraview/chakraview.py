@@ -216,6 +216,27 @@ class ChakraView:
         all_ticks_by_timestamp_df = all_ticks_by_timestamp_df.reset_index(drop=True)
         return all_ticks_by_timestamp_df
     
+    def find_nearest_expiry_by_expiry_code(self, underlying: str, date: datetime.date, time: datetime.time, expiry_code: int):
+        date_str = date.strftime('%Y-%m-%d')
+        time_str = time.strftime('%H:%M:%S')
+        self.all_tick_query = f"""
+        SELECT * FROM "{date_str}" WHERE time = '{time_str}'
+        """
+        try:
+            df = self.daily_tb.execute(self.all_tick_query).fetchdf()
+            df_filtered = df[(df['underlying'] == underlying)]
+            expiry = self.calculate_expiry_from_expiry_code(df_filtered, expiry_code)
+        except Exception as e:
+            self.log.error(f'Error In Fetching Data For {date}: {e}')
+            return None
+
+        if expiry is None:
+            self.log.error(f"No expiry found | underlying={underlying} | date={date} | time={time} | expiry_code={expiry_code}")
+            return None   # safe empty return
+        
+        return pd.Timestamp(expiry).date()
+        
+    
     def get_strike_by_moneyness(self, underlying_price, strike_difference, moneyness, right):
         """Calculates Nearest Strike According To Moneyness And Returns An Integer Value."""
         strike = 0
