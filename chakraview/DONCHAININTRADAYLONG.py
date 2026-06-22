@@ -15,7 +15,6 @@ class DONCHAININTRADAY(ChakraView):
         self.calc = CalculateMetrics()
         self.signals = []
         self.newday = None
-        self.dte_criteria = False
     
     def reset_all_variables(self):
         self.in_position = 0
@@ -38,6 +37,7 @@ class DONCHAININTRADAY(ChakraView):
         self.moneyness = int(uid_split.pop(0))
         self.expiry_code = int(uid_split.pop(0))
         self.dte = int(uid_split.pop(0))
+        self.target_multiplier = float(uid_split.pop(0))
         self.start = sessions.get(self.underlying).get('start')
         self.end = sessions.get(self.underlying).get('end')
         self.qty = lot_sizes.get(self.underlying)
@@ -54,7 +54,7 @@ class DONCHAININTRADAY(ChakraView):
 
         logger.debug(f'EXPIRY CONDITION DEBUG: NEAREST EXPIRY: {nearest_expiry} | CURRENT DATE: {date} | DATE DIFFERENCE: {date_difference.days}')
         
-        if date_difference.days <= self.dte:
+        if date_difference.days == self.dte:
             return True
         else:
             return False
@@ -104,7 +104,7 @@ class DONCHAININTRADAY(ChakraView):
         resampled_df = resampled_df.reset_index(drop=False)
         resampled_df['date'] = resampled_df['timestamp'].dt.date
         resampled_df['time'] = resampled_df['timestamp'].dt.time
-        resampled_df = resampled_df[resampled_df['time'] > datetime.time(9, 0, 0)].copy()
+
         return resampled_df.dropna()
     
     def get_resampled_tick(self, date: datetime.date, time: datetime.time):
@@ -141,9 +141,11 @@ class DONCHAININTRADAY(ChakraView):
 
         if newday:
             self.reset_all_variables()
-            self.dte_criteria = self.check_dte_criteria(row.date, row.time)
 
-        if self.dte_criteria:
+        dte_criteria = self.check_dte_criteria(row.date, row.time)
+        
+        
+        if dte_criteria:
 
             # ENTRY
             if self.in_position == 0:
@@ -207,7 +209,7 @@ class DONCHAININTRADAY(ChakraView):
 
             if adjusted_timestamp == self.end:
                 if self.in_position != 0:
-                    logger.info("TIME CONDITION MET. SQUARING OFF.")
+                    logger.info("DONCHAIN POSITION EXPIRED. SQUARING OFF.")
                     exit_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
                     if exit_tick:
                         exit_price = exit_tick['c']

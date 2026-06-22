@@ -8,11 +8,12 @@ import signal
 import sys
 
 uids = [
-    'DONCHAININTRADAYSHORT_NIFTY_15_15_1_0_0_2',
-    'DONCHAININTRADAYSHORT_NIFTY_15_30_1_0_0_2',
-    'DONCHAININTRADAYSHORT_NIFTY_15_60_1_0_0_2',
-    'DONCHAININTRADAYSHORT_NIFTY_15_75_1_0_0_2',
-    'DONCHAININTRADAYSHORT_NIFTY_15_90_1_0_0_2'
+
+    'DONCHAINDIRECTIONAL_NIFTY_5_15_1_0_0',
+    'DONCHAINDIRECTIONAL_NIFTY_5_30_1_0_0',
+    'DONCHAINDIRECTIONAL_NIFTY_5_60_1_0_0',
+    'DONCHAINDIRECTIONAL_NIFTY_5_75_1_0_0',
+    'DONCHAINDIRECTIONAL_NIFTY_5_90_1_0_0'
 ]
 
 # Global stop event
@@ -54,6 +55,7 @@ def run_uid(strategy_class, uid, stop_event):
 def strategy_process(strategy_name, uid_list, stop_event):
     """
     One process per strategy
+    
     """
 
     print(f"Started Process: {strategy_name}")

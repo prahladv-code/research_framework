@@ -22,8 +22,7 @@ class DONCHAINDIRECTIONAL(ChakraView):
         self.expiry = None
         self.high_level = None
         self.low_level = None
-        self.target_price = None
-        self.stoploss_level = None
+        
         
         
     # 'DONCHAINBTST_NIFTY_25_20_1_0_0'
@@ -36,7 +35,6 @@ class DONCHAINDIRECTIONAL(ChakraView):
         self.offset = int(uid_split.pop(0))
         self.moneyness = int(uid_split.pop(0))
         self.expiry_code = int(uid_split.pop(0))
-        self.target_percentage = float(uid_split.pop(0))
         self.start = sessions.get(self.underlying).get('start')
         self.end = sessions.get(self.underlying).get('end')
         self.qty = lot_sizes.get(self.underlying)
@@ -94,7 +92,7 @@ class DONCHAINDIRECTIONAL(ChakraView):
         base_dt = datetime.datetime.combine(date, time)
 
         if time == datetime.time(15, 5):
-            adjusted_timestamp = base_dt + datetime.timedelta(minutes=24)
+            adjusted_timestamp = base_dt + datetime.timedelta(minutes = timestamp_offset)
         else:
             adjusted_timestamp = base_dt + datetime.timedelta(minutes = timestamp_offset)
         
@@ -107,6 +105,7 @@ class DONCHAINDIRECTIONAL(ChakraView):
         df['upper_channel'] = df['upper_channel'].shift(self.offset)
         df['lower_channel'] = df['l'].rolling(self.indicator_period).min()
         df['lower_channel'] = df['lower_channel'].shift(self.offset)
+        df['mid_point'] = (df['upper_channel'] + df['lower_channel']) / 2
         
         return df
     
@@ -131,7 +130,6 @@ class DONCHAINDIRECTIONAL(ChakraView):
                     logger.info(f"PUT SHORT ENTRY FOUND AT: {current_timestamp}")
                     self.entry_symbol = entry_ticker['symbol']
                     self.expiry = entry_ticker['expiry'].date()
-                    self.stoploss_level = row.l
                     entry_price = entry_ticker['c']
                     entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'SHORT', 'SHORT_ENTRY')
                     self.signals.append(entry_trade)
@@ -146,7 +144,6 @@ class DONCHAINDIRECTIONAL(ChakraView):
                     logger.info(f"CALL SHORT ENTRY FOUND AT: {current_timestamp}")
                     self.entry_symbol = entry_ticker['symbol']
                     self.expiry = entry_ticker['expiry'].date()
-                    self.stoploss_level = row.h
                     entry_price = entry_ticker['c']
                     entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'SHORT', 'SHORT_ENTRY')
                     self.signals.append(entry_trade)
@@ -155,33 +152,31 @@ class DONCHAINDIRECTIONAL(ChakraView):
                     logger.warning(f'ENTRY TICKER FOUND EMPTY AT: {current_timestamp}')
                     self.reset_all_variables()
 
-        if self.stoploss_level is not None:
-
-            if self.in_position == 1:
-                if row.c < self.stoploss_level:
-                    position_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
-                    if position_tick:
-                        logger.info(f"PUT STOPLOSS SIGNAL FOUND AT: {current_timestamp}")
-                        price = position_tick['c']
-                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, price, self.qty, self.qty * price, 'COVER', 'SHORT_EXIT')
-                        self.signals.append(exit_trade)
-                        self.reset_all_variables()
-                    else:
-                        logger.warning(f"PUT STOPLOSS TICK FOUND EMPTY. RESETTING.")
-                        self.reset_all_variables()
-            
-            if self.in_position == -1:
-                if row.c > self.stoploss_level:
-                    position_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
-                    if position_tick:
-                        logger.info(f"CALL STOPLOSS SIGNAL FOUND AT: {current_timestamp}")
-                        price = position_tick['c']
-                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, price, self.qty, self.qty * price, 'COVER', 'SHORT_EXIT')
-                        self.signals.append(exit_trade)
-                        self.reset_all_variables()
-                    else:
-                        logger.warning(f"CALL STOPLOSS TICK FOUND EMPTY. RESETTING.")
-                        self.reset_all_variables()
+        if self.in_position == 1:
+            if row.c < row.mid_point:
+                position_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                if position_tick:
+                    logger.info(f"PUT STOPLOSS SIGNAL FOUND AT: {current_timestamp}")
+                    price = position_tick['c']
+                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, price, self.qty, self.qty * price, 'COVER', 'SHORT_EXIT')
+                    self.signals.append(exit_trade)
+                    self.reset_all_variables()
+                else:
+                    logger.warning(f"PUT STOPLOSS TICK FOUND EMPTY. RESETTING.")
+                    self.reset_all_variables()
+        
+        if self.in_position == -1:
+            if row.c > row.mid_point:
+                position_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                if position_tick:
+                    logger.info(f"CALL STOPLOSS SIGNAL FOUND AT: {current_timestamp}")
+                    price = position_tick['c']
+                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, price, self.qty, self.qty * price, 'COVER', 'SHORT_EXIT')
+                    self.signals.append(exit_trade)
+                    self.reset_all_variables()
+                else:
+                    logger.warning(f"CALL STOPLOSS TICK FOUND EMPTY. RESETTING.")
+                    self.reset_all_variables()
 
         if row.date == self.expiry:
             if adjusted_timestamp == self.end:
