@@ -8,7 +8,7 @@ import numpy as np
 import time
 from chakraview.logger import logger
 
-class PRICEMA(ChakraView):
+class PRICEMABANDSSHORT(ChakraView):
     def __init__(self):
         super().__init__()
         self.previous_date = None
