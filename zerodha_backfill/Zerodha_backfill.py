@@ -28,10 +28,10 @@ class BackFill:
         return meta_list
 
     def filter_instrument_metadata(self):
-        instruments = self.get_instrument_metadata(['NSE', 'NFO', 'MCX'])
+        instruments = self.get_instrument_metadata(['NSE', 'NFO', 'BSE', 'BFO'])
         final_dict = []
         today = datetime.datetime.today().date()
-        accepted_names = ['NIFTY', 'BANKNIFTY', 'MIDCPNIFTY', 'FINNIFTY', 'GOLD', 'CRUDEOIL', 'NIFTY 50', 'NIFTY BANK', 'NIFTY MIDCAP SELECT (MIDCPNIFTY)', 'NIFTY FIN SERVICE']
+        accepted_names = ['NIFTY', 'BANKNIFTY', 'SENSEX', 'NIFTY 50', 'NIFTY BANK'] # 'GOLD', 'CRUDEOIL', 'NIFTY 50', 'NIFTY BANK', 'NIFTY MIDCAP SELECT (MIDCPNIFTY)', 'NIFTY FIN SERVICE']
         for instrument in instruments:
             symbol = instrument.get('tradingsymbol')
             instrument_token = instrument.get('instrument_token')
