@@ -8,7 +8,7 @@ import signal
 import sys
 
 uids = [
-    'DONCHAINDIRECTIONAL_NIFTY_5_60_1_0_0'
+    'DONCHAINDIRECTIONAL_NIFTY_5_45_1_0_0'
 ]
 
 # Global stop event
