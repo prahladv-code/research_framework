@@ -8,9 +8,7 @@ import signal
 import sys
 
 uids = [
-    "PRICEMABANDSSHORT_NIFTY_3_33_25_1",
-    "PRICEMABANDSSHORT_NIFTY_3_63_25_1",
-    "PRICEMABANDSSHORT_NIFTY_3_93_25_1",
+    'DONCHAINDIRECTIONAL_NIFTY_5_60_1_0_0'
 ]
 
 # Global stop event
