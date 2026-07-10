@@ -300,6 +300,7 @@ class BOLLINGER(ChakraView):
         tradesheet = pd.DataFrame(self.signals)
         tradesheet = self.calc.calculate_pl_in_opt_tradesheet(tradesheet)
         tradesheet.to_parquet(f"C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/bollingershort/{uid}.parquet")
+        # tradesheet.to_parquet(f"C:/Users/Admin/Desktop/live_backtest/{uid}.parquet")
         logger.info('###########################BACKTEST COMPLETE################################')
 
 

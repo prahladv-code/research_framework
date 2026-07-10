@@ -475,6 +475,7 @@ class PRICEMABANDSSHORT(ChakraView):
         df = pd.DataFrame(self.signals_list)
         tradesheet = self.metrics.calculate_pl_in_opt_tradesheet(df)
         tradesheet.to_parquet(f'C:/Users/Admin/Desktop/research_framework/research_framework/tradesheets/pricemabands/{uid}.parquet')
+        # tradesheet.to_parquet(f'C:/Users/Admin/Desktop/live_backtest/{uid}.parquet')
         end = time.time()
         print(f'Elapsed Time In COMPLETING raw Tradesheet Generation: {end-start}')
         print("+++++++++++++++++++++++++++++++++++++++ GENERATED UID +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
