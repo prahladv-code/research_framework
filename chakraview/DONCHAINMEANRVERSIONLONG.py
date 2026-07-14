@@ -7,7 +7,7 @@ from chakraview.logger import logger
 from analysis.calculate_metrics import CalculateMetrics
 
 
-class DONCHAINDIRECTIONAL(ChakraView):
+class DONCHAINMEAN(ChakraView):
 
     def __init__(self):
         super().__init__()
@@ -22,7 +22,8 @@ class DONCHAINDIRECTIONAL(ChakraView):
         self.expiry = None
         self.high_level = None
         self.low_level = None
-        
+        self.stoploss_level = None
+        self.target_price = None
         
         
     # 'DONCHAINBTST_NIFTY_25_20_1_0_0'
@@ -119,78 +120,109 @@ class DONCHAINDIRECTIONAL(ChakraView):
         newday = self.check_new_day(row.date)
         
         if newday:
-            if self.in_position == 0:
-                self.reset_all_variables()
+            self.reset_all_variables()
         
         # ENTRY
         if self.in_position == 0:
-            if row.c > row.upper_channel:
-                entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'PE', self.moneyness)
-                if entry_ticker:
-                    logger.info(f"CALL LONG ENTRY FOUND AT: {current_timestamp}")
-                    self.entry_symbol = entry_ticker['symbol']
-                    self.expiry = entry_ticker['expiry'].date()
-                    entry_price = entry_ticker['c']
-                    entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'LONG', 'LONG_ENTRY')
-                    self.signals.append(entry_trade)
-                    self.in_position = 1
-                else:
-                    logger.warning(f'ENTRY TICKER FOUND EMPTY AT: {current_timestamp}')
-                    self.reset_all_variables()
-                        
-            if row.c < row.lower_channel:
-                entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'CE', self.moneyness)
-                if entry_ticker:
-                    logger.info(f"PUT LONG ENTRY FOUND AT: {current_timestamp}")
-                    self.entry_symbol = entry_ticker['symbol']
-                    self.expiry = entry_ticker['expiry'].date()
-                    entry_price = entry_ticker['c']
-                    entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'LONG', 'LONG_ENTRY')
-                    self.signals.append(entry_trade)
-                    self.in_position = -1
-                else:
-                    logger.warning(f'ENTRY TICKER FOUND EMPTY AT: {current_timestamp}')
-                    self.reset_all_variables()
+            if self.high_level is None and self.low_level is None:
+                if row.c > row.upper_channel:
+                    self.low_level = row.l
+                    self.stoploss_level = row.h
+                elif row.c < row.lower_channel:
+                    self.high_level = row.h
+                    self.stoploss_level = row.l
+
+        if self.high_level is not None:
+            if self.in_position == 0:
+                if row.c > self.high_level:
+                    entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'CE', self.moneyness)
+                    if entry_ticker:
+                        logger.info(f'CALL LONG ENTRY FOUND AT: {current_timestamp}')
+                        self.entry_symbol = entry_ticker['symbol']
+                        self.expiry = entry_ticker['expiry'].date()
+                        entry_price = entry_ticker['c']
+                        entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, entry_price * self.qty, 'BUY', 'LONG_ENTRY')
+                        self.signals.append(entry_trade)
+                        self.in_position = 1
+                    else:
+                        logger.warning(f'CALL LONG ENTRY TICKER FOUND NONE AT: {current_timestamp}')
+                        self.reset_all_variables()                   
+                
+        if self.low_level is not None:
+            if self.in_position == 0:
+                if row.c < self.low_level:
+                    entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'PE', self.moneyness)
+                    if entry_ticker:
+                        logger.info(f"PUT LONG ENTRY FOUND AT: {current_timestamp}")
+                        self.entry_symbol = entry_ticker['symbol']
+                        self.expiry = entry_ticker['expiry'].date()
+                        entry_price = entry_ticker['c']
+                        entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'LONG', 'LONG_ENTRY')
+                        self.signals.append(entry_trade)
+                        self.in_position = -1
+                    else:
+                        logger.warning(f'PUT LONG ENTRY TICKER FOUND EMPTY AT: {current_timestamp}')
+                        self.reset_all_variables()
 
         if self.in_position == 1:
-            if row.c < row.mid_point:
-                position_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
-                if position_tick:
-                    logger.info(f"CALL STOPLOSS SIGNAL FOUND AT: {current_timestamp}")
-                    price = position_tick['c']
-                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, price, self.qty, self.qty * price, 'SELL', 'LONG_EXIT')
-                    self.signals.append(exit_trade)
-                    self.reset_all_variables()
-                else:
-                    logger.warning(f"CALL STOPLOSS TICK FOUND EMPTY. RESETTING.")
-                    self.reset_all_variables()
-        
-        if self.in_position == -1:
             if row.c > row.mid_point:
                 position_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
                 if position_tick:
-                    logger.info(f"PUT STOPLOSS SIGNAL FOUND AT: {current_timestamp}")
+                    logger.info(f"CALL TARGET SIGNAL FOUND AT: {current_timestamp}")
                     price = position_tick['c']
                     exit_trade = self.place_trade(current_timestamp, self.entry_symbol, price, self.qty, self.qty * price, 'SELL', 'LONG_EXIT')
                     self.signals.append(exit_trade)
                     self.reset_all_variables()
                 else:
-                    logger.warning(f"PUT STOPLOSS TICK FOUND EMPTY. RESETTING.")
+                    logger.warning(f"CALL TARGET TICK FOUND EMPTY. RESETTING.")
+                    self.reset_all_variables()
+        
+        if self.in_position == -1:
+            if row.c < row.mid_point:
+                position_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                if position_tick:
+                    logger.info(f"PUT TARGET SIGNAL FOUND AT: {current_timestamp}")
+                    price = position_tick['c']
+                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, price, self.qty, self.qty * price, 'SELL', 'LONG_EXIT')
+                    self.signals.append(exit_trade)
+                    self.reset_all_variables()
+                else:
+                    logger.warning(f"PUT TARGET TICK FOUND EMPTY. RESETTING.")
                     self.reset_all_variables()
 
-        if row.date == self.expiry:
-            if adjusted_timestamp == self.end:
-                if self.in_position != 0:
-                    logger.info("DONCHAIN POSITION EXPIRED. SQUARING OFF.")
-                    exit_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
-                    if exit_tick:
-                        exit_price = exit_tick['c']
-                        exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'SELL', 'LONG_EXIT')
-                        self.signals.append(exit_trade)
-                        self.reset_all_variables()
-                    else:
-                        logger.warning(f"EXPIRY TICK FOUND EMPTY. RESETTING.")
-                        self.reset_all_variables()
+        if self.in_position == 1:
+            if row.c < self.stoploss_level:
+                exit_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                if exit_tick:
+                    logger.info(f'CALL STOPLOSS SIGNAL FOUND AT: {current_timestamp}')
+                    exit_price = exit_tick['c']
+                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, exit_price * self.qty, 'SELL', 'LONG_EXIT')
+                    self.signals.append(exit_trade)
+                    self.reset_all_variables()
+                else:
+                    logger.warning(f'CALL LONG EXIT TICK FOUND EMPTY. RESETTING.')
+                    self.reset_all_variables()
+
+        if self.in_position == -1:
+            if row.c > self.stoploss_level:
+                exit_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                if exit_tick:
+                    logger.info(f'PUT STOPLOSS SIGNAL FOUND AT: {current_timestamp}')
+                    exit_price = exit_tick['c']
+                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'SELL', 'LONG_EXIT')
+
+        if adjusted_timestamp == self.end:
+            if self.in_position != 0:
+                logger.info("DONCHAIN TIME CONDITION MET. SQUARING OFF.")
+                exit_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                if exit_tick:
+                    exit_price = exit_tick['c']
+                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'SELL', 'LONG_EXIT')
+                    self.signals.append(exit_trade)
+                    self.reset_all_variables()
+                else:
+                    logger.warning(f"EXPIRY TICK FOUND EMPTY. RESETTING.")
+                    self.reset_all_variables()
 
     def run_backtest(self, uid: str):
         self.set_params_from_uid(uid)

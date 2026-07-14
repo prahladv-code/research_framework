@@ -23,7 +23,6 @@ class BOLLINGER(ChakraView):
         self.stoploss_level = None
         self.high_level = None
         self.low_level = None
-        self.expiry_date = None
         self.in_position = 0
     
     def set_params_from_uid(self, uid: str):
