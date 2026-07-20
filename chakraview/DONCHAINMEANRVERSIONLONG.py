@@ -23,8 +23,7 @@ class DONCHAINMEAN(ChakraView):
         self.high_level = None
         self.low_level = None
         self.stoploss_level = None
-        self.target_price = None
-        
+        self.target_price = None        
         
     # 'DONCHAINBTST_NIFTY_25_20_1_0_0'
     def set_params_from_uid(self, uid: str):
@@ -36,6 +35,7 @@ class DONCHAINMEAN(ChakraView):
         self.offset = int(uid_split.pop(0))
         self.moneyness = int(uid_split.pop(0))
         self.expiry_code = int(uid_split.pop(0))
+        self.target_multiplier = float(uid_split.pop(0))
         self.start = sessions.get(self.underlying).get('start')
         self.end = sessions.get(self.underlying).get('end')
         self.qty = lot_sizes.get(self.underlying)
@@ -144,6 +144,8 @@ class DONCHAINMEAN(ChakraView):
                         entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, entry_price * self.qty, 'BUY', 'LONG_ENTRY')
                         self.signals.append(entry_trade)
                         self.in_position = 1
+                        target_price_range = self.high_level - self.stoploss_level
+                        self.target_price = row.c + (self.target_multiplier * target_price_range)
                     else:
                         logger.warning(f'CALL LONG ENTRY TICKER FOUND NONE AT: {current_timestamp}')
                         self.reset_all_variables()                   
@@ -160,12 +162,14 @@ class DONCHAINMEAN(ChakraView):
                         entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'LONG', 'LONG_ENTRY')
                         self.signals.append(entry_trade)
                         self.in_position = -1
+                        target_price_range = self.stoploss_level - self.low_level
+                        self.target_price = row.c - (self.target_multiplier * target_price_range)
                     else:
                         logger.warning(f'PUT LONG ENTRY TICKER FOUND EMPTY AT: {current_timestamp}')
                         self.reset_all_variables()
 
         if self.in_position == 1:
-            if row.c > row.mid_point:
+            if row.c >= self.target_price:
                 position_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
                 if position_tick:
                     logger.info(f"CALL TARGET SIGNAL FOUND AT: {current_timestamp}")
@@ -178,7 +182,7 @@ class DONCHAINMEAN(ChakraView):
                     self.reset_all_variables()
         
         if self.in_position == -1:
-            if row.c < row.mid_point:
+            if row.c <= self.target_price:
                 position_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
                 if position_tick:
                     logger.info(f"PUT TARGET SIGNAL FOUND AT: {current_timestamp}")
@@ -210,6 +214,10 @@ class DONCHAINMEAN(ChakraView):
                     logger.info(f'PUT STOPLOSS SIGNAL FOUND AT: {current_timestamp}')
                     exit_price = exit_tick['c']
                     exit_trade = self.place_trade(current_timestamp, self.entry_symbol, exit_price, self.qty, self.qty * exit_price, 'SELL', 'LONG_EXIT')
+                    self.signals.append(exit_trade)
+                    self.reset_all_variables()
+                else:
+                    logger.warning(f'PUT LONG EXIT TICK FOUND EMPTY. RESETTING.')
 
         if adjusted_timestamp == self.end:
             if self.in_position != 0:
