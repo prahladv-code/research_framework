@@ -421,10 +421,212 @@ class CalculateMetrics:
 
         return calendar_returns
 
+    def calculate_block_bootstrapped_simulation(self, combined_df: pd.DataFrame, initial_margin: float, block_size: int):
+        INITIAL_CAPITAL = initial_margin
+        N_BOOTSTRAPS = 10000
+        TRADING_DAYS_PER_YEAR = 252
+        BLOCK_SIZE = block_size
+
+        pl = combined_df["Net P/L"].dropna().to_numpy()
+        n_trades = len(pl)
+
+        # ============================================================
+        # Original duration (years)
+        # ============================================================
+
+        if "date" in combined_df.columns:
+
+            combined_df["date"] = pd.to_datetime(
+                combined_df["date"]
+            )
+
+            years = (
+                (
+                    combined_df["date"].max()
+                    - combined_df["date"].min()
+                ).days
+                / 365.25
+            )
+
+        else:
+
+            years = (
+                n_trades
+                / TRADING_DAYS_PER_YEAR
+            )
+
+        # ============================================================
+        # Helper functions
+        # ============================================================
+
+        def max_drawdown(eq_curve):
+
+            running_max = np.maximum.accumulate(
+                eq_curve
+            )
+
+            drawdown = (
+                eq_curve - running_max
+            ) / running_max
+
+            return drawdown.min()
 
 
+        def calmar(cagr, mdd):
+
+            return cagr / abs(mdd)
 
 
+        def CAGR(eq_curve, years):
+
+            # IMPORTANT:
+            # CAGR starts from the actual initial capital,
+            # not the equity after the first trade.
+
+            start = INITIAL_CAPITAL
+
+            end = eq_curve[-1]
+
+            return (
+                (end / start) ** (1 / years)
+            ) - 1
+
+        # ============================================================
+        # Create overlapping blocks
+        #
+        # Example with BLOCK_SIZE = 50:
+        #
+        # Block 1 = trades 0:50
+        # Block 2 = trades 1:51
+        # Block 3 = trades 2:52
+        # ...
+        #
+        # Overlapping blocks preserve local trade behaviour.
+        # ============================================================
+
+        blocks = []
+
+        for start in range(
+            0,
+            n_trades - BLOCK_SIZE + 1
+        ):
+
+            block = pl[
+                start:start + BLOCK_SIZE
+            ]
+
+            blocks.append(block)
+
+
+        n_blocks = len(blocks)
+
+        print(f"Number of available blocks: {n_blocks:,}")
+
+
+        # ============================================================
+        # Bootstrap arrays
+        # ============================================================
+
+        boot_cagr = np.zeros(
+            N_BOOTSTRAPS
+        )
+
+        boot_mdd = np.zeros(
+            N_BOOTSTRAPS
+        )
+
+        boot_calmar = np.zeros(
+            N_BOOTSTRAPS
+        )
+
+
+        # ============================================================
+        # Block Simulation
+        # ============================================================
+
+        for i in range(N_BOOTSTRAPS):
+
+            simulated_pl = []
+
+            # --------------------------------------------------------
+            # Keep selecting random blocks until we have enough trades
+            # --------------------------------------------------------
+
+            while len(simulated_pl) < n_trades:
+
+                block_index = np.random.randint(
+                    0,
+                    n_blocks
+                )
+
+                simulated_pl.extend(
+                    blocks[block_index]
+                )
+
+            # --------------------------------------------------------
+            # Trim to exactly the original number of trades
+            # --------------------------------------------------------
+
+            simulated_pl = np.asarray(
+                simulated_pl[:n_trades]
+            )
+
+            # --------------------------------------------------------
+            # Non-compounded equity curve
+            # --------------------------------------------------------
+
+            eq = (
+                INITIAL_CAPITAL
+                + simulated_pl.cumsum()
+            )
+
+            # --------------------------------------------------------
+            # CAGR
+            # --------------------------------------------------------
+
+            boot_cagr[i] = CAGR(
+                eq,
+                years
+            )
+
+            # --------------------------------------------------------
+            # Maximum Drawdown
+            # --------------------------------------------------------
+
+            boot_mdd[i] = max_drawdown(
+                eq
+            )
+
+            # --------------------------------------------------------
+            # Calmar
+            # --------------------------------------------------------
+
+            boot_calmar[i] = calmar(
+                boot_cagr[i],
+                boot_mdd[i]
+            )
+
+
+        # ============================================================
+        # Confidence Intervals
+        # ============================================================
+
+        def confidence_interval(x):
+
+            return {
+                "Mean": np.mean(x),
+                "Median": np.median(x),
+                "2.5%": np.percentile(x, 2.5),
+                "5%": np.percentile(x, 5),
+                "95%": np.percentile(x, 95),
+                "97.5%": np.percentile(x, 97.5),
+            }
+
+        cagr_metrics = confidence_interval(boot_cagr)
+        mdd_metrics = confidence_interval(boot_mdd)
+        calmar_metrics = confidence_interval(boot_calmar)
+        all_confidence_intervals = {'CAGR': pd.DataFrame([cagr_metrics]), 'MDD': pd.DataFrame([mdd_metrics]), 'Calmar': pd.DataFrame([calmar_metrics])}
+        return {"CAGR": boot_cagr, "MDD": boot_mdd, "Calmar": boot_calmar}, all_confidence_intervals
 
 
 

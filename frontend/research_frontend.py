@@ -143,6 +143,110 @@ def calculate_pl_distribution(folder_path, initial_margin):
         plot_pl_distribution(filtered_df)
 
 
+def plot_bootstrapped_simulations(combined_df : pd.DataFrame, initial_margin: float, block_size: int):
+
+    all_simulations, all_confidence_intervals = calc.calculate_block_bootstrapped_simulation(combined_df, initial_margin, block_size)
+    
+    # ============================================================
+    # Display metric DataFrames + distributions
+    # ============================================================
+
+    for confidence_type, confidence_metrics in all_confidence_intervals.items():
+
+        # --------------------------------------------------------
+        # Display confidence interval DataFrame
+        # --------------------------------------------------------
+
+        st.markdown(f"### {confidence_type}")
+
+        st.dataframe(
+            confidence_metrics,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        # --------------------------------------------------------
+        # Get corresponding bootstrap array
+        # --------------------------------------------------------
+
+        bootstrap_data = all_simulations[confidence_type]
+
+        # --------------------------------------------------------
+        # Convert percentage-based metrics
+        # --------------------------------------------------------
+
+        if confidence_type in ["CAGR", "MDD"]:
+            plot_data = bootstrap_data * 100
+            x_title = f"{confidence_type} (%)"
+
+        else:
+            plot_data = bootstrap_data
+            x_title = "Calmar Ratio"
+
+        # --------------------------------------------------------
+        # Calculate confidence intervals
+        # --------------------------------------------------------
+
+        ci_low = np.percentile(plot_data, 2.5)
+        ci_high = np.percentile(plot_data, 97.5)
+        mean_value = np.mean(plot_data)
+
+        # --------------------------------------------------------
+        # Create histogram
+        # --------------------------------------------------------
+
+        fig = px.histogram(
+            x=plot_data,
+            nbins=60,
+            title=f"Bootstrap Distribution of {confidence_type}",
+            labels={
+                "x": x_title,
+                "count": "Frequency"
+            }
+        )
+
+        # --------------------------------------------------------
+        # 2.5% CI
+        # --------------------------------------------------------
+
+        fig.add_vline(
+            x=ci_low,
+            line_dash="dash",
+            annotation_text="2.5%",
+            annotation_position="top"
+        )
+
+        # --------------------------------------------------------
+        # 97.5% CI
+        # --------------------------------------------------------
+
+        fig.add_vline(
+            x=ci_high,
+            line_dash="dash",
+            annotation_text="97.5%",
+            annotation_position="top"
+        )
+
+        # --------------------------------------------------------
+        # Mean
+        # --------------------------------------------------------
+
+        fig.add_vline(
+            x=mean_value,
+            line_width=3,
+            annotation_text="Mean",
+            annotation_position="top"
+        )
+
+        # --------------------------------------------------------
+        # Streamlit
+        # --------------------------------------------------------
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
 
 def downloads_section():
 
@@ -511,6 +615,12 @@ def portfolios_driver():
             st.write('Portfolio Monthly Returns')
             monthly_df = calculate_monthly_returns(portfolio_df, initial_margin)
             st.dataframe(monthly_df)
+
+            st.divider()
+            st.subheader("Bootstrapped simulation metrics")
+            block_size = st.number_input("Bootstrap Block Size", 10, 200, key = 'block_size')
+            plot_bootstrapped_simulations(portfolio_df, initial_margin, block_size)
+
         
 
 def strategy_driver():
