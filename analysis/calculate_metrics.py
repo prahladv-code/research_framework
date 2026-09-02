@@ -427,7 +427,7 @@ class CalculateMetrics:
         TRADING_DAYS_PER_YEAR = 252
         BLOCK_SIZE = block_size
 
-        pl = combined_df["Net P/L"].dropna().to_numpy()
+        pl = combined_df["P/L"].dropna().to_numpy()
         n_trades = len(pl)
 
         # ============================================================
