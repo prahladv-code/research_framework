@@ -434,26 +434,14 @@ class CalculateMetrics:
         # Original duration (years)
         # ============================================================
 
-        if "date" in combined_df.columns:
-
-            combined_df["date"] = pd.to_datetime(
-                combined_df["date"]
-            )
-
-            years = (
-                (
-                    combined_df["date"].max()
-                    - combined_df["date"].min()
-                ).days
-                / 365.25
-            )
-
+        if "timestamp" in combined_df.columns:
+            ts = pd.to_datetime(combined_df["timestamp"])
+            years = (ts.max() - ts.min()).days / 365.25
+        elif "date" in combined_df.columns:
+            combined_df["date"] = pd.to_datetime(combined_df["date"])
+            years = (combined_df["date"].max() - combined_df["date"].min()).days / 365.25
         else:
-
-            years = (
-                n_trades
-                / TRADING_DAYS_PER_YEAR
-            )
+            years = n_trades / TRADING_DAYS_PER_YEAR
 
         # ============================================================
         # Helper functions

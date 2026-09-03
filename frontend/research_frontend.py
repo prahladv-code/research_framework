@@ -598,7 +598,7 @@ def portfolios_driver():
             portfolio_df = portfolio_df.sort_values(by='timestamp')
             # Apply start date filter if selected
             if start_date:
-                portfolio_df = portfolio_df[portfolio_df['timestamp'].dt.date >= start_date]
+                portfolio_df = portfolio_df[portfolio_df['timestamp'].dt.date >= start_date].copy()
             df_metrics, metrics = calc.calculate_metrics(portfolio_df, initial_margin, slippage_pct, slippage_points)
             st.write("Portfolio Metrics")
             st.dataframe([metrics])
@@ -621,7 +621,7 @@ def portfolios_driver():
             calculate_bootstrapped_flag = st.checkbox("Calculate Bootstrapped Simulation", key='boot_flag')
             if calculate_bootstrapped_flag:
                 block_size = st.number_input("Bootstrap Block Size", 50, 200, key = 'block_size')
-                plot_bootstrapped_simulations(df_metrics, initial_margin, block_size)
+                plot_bootstrapped_simulations(combined_df=df_metrics, initial_margin=initial_margin, block_size=block_size)
 
         
 
