@@ -613,7 +613,7 @@ def portfolios_driver():
             
             st.divider()
             st.write('Portfolio Monthly Returns')
-            monthly_df = calculate_monthly_returns(portfolio_df, initial_margin)
+            monthly_df = calculate_monthly_returns(df_metrics, initial_margin)
             st.dataframe(monthly_df)
 
             st.divider()
