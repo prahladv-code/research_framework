@@ -618,8 +618,10 @@ def portfolios_driver():
 
             st.divider()
             st.subheader("Bootstrapped simulation metrics")
-            block_size = st.number_input("Bootstrap Block Size", 10, 200, key = 'block_size')
-            plot_bootstrapped_simulations(df_metrics, initial_margin, block_size)
+            calculate_bootstrapped_flag = st.checkbox("Calculate Bootstrapped Simulation", key='boot_flag')
+            if calculate_bootstrapped_flag:
+                block_size = st.number_input("Bootstrap Block Size", 50, 200, key = 'block_size')
+                plot_bootstrapped_simulations(df_metrics, initial_margin, block_size)
 
         
 
