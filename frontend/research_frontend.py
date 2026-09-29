@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-logo_path = os.path.join(BASE_DIR, "108 TEST LOGO.png")
+logo_path = os.path.join(BASE_DIR, "108 logo png.png")
 # Add repo root to sys.path if it's not already there
 if REPO_ROOT not in sys.path:
     sys.path.append(REPO_ROOT)
