@@ -788,7 +788,15 @@ def strategy_driver():
         display_correlation_matrix(folder_path)
         calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
         calculate_pl_distribution(folder_path, initial_margin)
-
+    
+    elif selected_strat == 'EODHEDGE':
+        folder_path = folder_paths.get(selected_strat)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_correlation_matrix(folder_path)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_pl_distribution(folder_path, initial_margin)
 
 # C:/Users/admin/VSCode/tradesheets/pcco/
 
