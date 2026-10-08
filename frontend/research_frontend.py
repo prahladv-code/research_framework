@@ -255,7 +255,7 @@ def downloads_section():
     if st.sidebar.checkbox("Go to Downloads"):
         strat = st.selectbox(
             "Select a Strat to Download Tradebooks:",
-            ["PCCO_SPOT", "PCCO_OPT", "PRICEMA", "IVIX", "PRICEMACLOSEFILTER", 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS']
+            ["PCCO_SPOT", "PCCO_OPT", "PRICEMA", "IVIX", "PRICEMACLOSEFILTER", 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS', 'EODHEDGE']
         )
 
         if strat == "PCCO_SPOT":
@@ -284,6 +284,8 @@ def downloads_section():
             folder_path = './tradesheets/donchain/'
         elif strat == 'ORBSTOCKS':
             folder_path = './tradesheets/orbstocks/'
+        elif strat == 'EODHEDGE':
+            folder_path = './tradesheets/eodhedge/'
         
         
         # Check if folder exists
@@ -521,10 +523,11 @@ def portfolios_driver():
         'BTST': './tradesheets/btst/',
         'AVWAP': './tradesheets/avwap/',
         'DONCHAIN': './tradesheets/donchain/',
-        'ORBSTOCKS': './tradesheets/orbstocks/'
+        'ORBSTOCKS': './tradesheets/orbstocks/',
+        'EODHEDGE': './tradesheets/eodhedge/'
 
     }
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS']
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS', 'EODHEDGE']
     
     # Select strategies
     strats = st.multiselect('Strategies', strategies)
@@ -626,7 +629,7 @@ def portfolios_driver():
         
 
 def strategy_driver():
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS']  # both options in the same radio
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS', 'EODHEDGE']  # both options in the same radio
     selected_strat = st.sidebar.radio('Select A Strategy', strategies, key='pcco_strategy')
     folder_paths = {
         'PCCO_SPOT': './tradesheets/pcco/',
@@ -643,7 +646,8 @@ def strategy_driver():
         'BTST': './tradesheets/btst/',
         'AVWAP': './tradesheets/avwap/',
         'DONCHAIN': './tradesheets/donchain/',
-        'ORBSTOCKS': './tradesheets/orbstocks/'
+        'ORBSTOCKS': './tradesheets/orbstocks/',
+        'EODHEDGE': './tradesheets/eodhedge/'
     }
 
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
