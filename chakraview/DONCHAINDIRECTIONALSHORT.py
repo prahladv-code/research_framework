@@ -25,7 +25,7 @@ class DONCHAINDIRECTIONAL(ChakraView):
         
         
         
-    # 'DONCHAINBTST_NIFTY_25_20_1_0_0'
+    # 'DONCHAINDIRECTIONAL_NIFTY_5_15_1_0_0'
     def set_params_from_uid(self, uid: str):
         uid_split = uid.split('_')
         self.strat = uid_split.pop(0)
@@ -123,8 +123,8 @@ class DONCHAINDIRECTIONAL(ChakraView):
                 self.reset_all_variables()
         
         # ENTRY
-        if self.in_position == 0:
-            if row.c > row.upper_channel:
+        if row.c > row.upper_channel:
+            if self.in_position == 0:
                 entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'PE', self.moneyness)
                 if entry_ticker:
                     logger.info(f"PUT SHORT ENTRY FOUND AT: {current_timestamp}")
@@ -137,8 +137,59 @@ class DONCHAINDIRECTIONAL(ChakraView):
                 else:
                     logger.warning(f'ENTRY TICKER FOUND EMPTY AT: {current_timestamp}')
                     self.reset_all_variables()
-                        
-            if row.c < row.lower_channel:
+
+            elif self.in_position == -1:
+                exit_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                if exit_tick:
+                    logger.info(f"CALL EXIT SIGNAL FOUND AT: {current_timestamp}")
+                    price = exit_tick['c']
+                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, price, self.qty, self.qty * price, 'COVER', 'SHORT_EXIT')
+                    self.signals.append(exit_trade)
+                    self.reset_all_variables()
+                else:
+                    logger.warning(f"CALL EXIT TICK FOUND EMPTY. RESETTING.")
+                    self.reset_all_variables()
+
+                entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'PE', self.moneyness)
+                if entry_ticker:
+                    logger.info(f"PUT SHORT ENTRY FOUND AT: {current_timestamp}")
+                    self.entry_symbol = entry_ticker['symbol']
+                    self.expiry = entry_ticker['expiry'].date()
+                    entry_price = entry_ticker['c']
+                    entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'SHORT', 'SHORT_ENTRY')
+                    self.signals.append(entry_trade)
+                    self.in_position = 1
+                else:
+                    logger.warning(f'ENTRY TICKER FOUND EMPTY AT: {current_timestamp}')
+                    self.reset_all_variables()
+                    
+        if row.c < row.lower_channel:
+            if self.in_position == 0:
+                entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'CE', self.moneyness)
+                if entry_ticker:
+                    logger.info(f"CALL SHORT ENTRY FOUND AT: {current_timestamp}")
+                    self.entry_symbol = entry_ticker['symbol']
+                    self.expiry = entry_ticker['expiry'].date()
+                    entry_price = entry_ticker['c']
+                    entry_trade = self.place_trade(current_timestamp, self.entry_symbol, entry_price, self.qty, self.qty * entry_price, 'SHORT', 'SHORT_ENTRY')
+                    self.signals.append(entry_trade)
+                    self.in_position = -1
+                else:
+                    logger.warning(f'ENTRY TICKER FOUND EMPTY AT: {current_timestamp}')
+                    self.reset_all_variables()
+                    
+            elif self.in_position == 1:
+                exit_tick = self.get_tick(self.entry_symbol, row.date, adjusted_timestamp)
+                if exit_tick:
+                    logger.info(f"PUT EXIT SIGNAL FOUND AT: {current_timestamp}")
+                    price = exit_tick['c']
+                    exit_trade = self.place_trade(current_timestamp, self.entry_symbol, price, self.qty, self.qty * price, 'COVER', 'SHORT_EXIT')
+                    self.signals.append(exit_trade)
+                    self.reset_all_variables()
+                else:
+                    logger.warning(f"PUT EXIT TICK FOUND EMPTY. RESETTING.")
+                    self.reset_all_variables()
+
                 entry_ticker = self.find_ticker_by_moneyness(self.underlying, self.expiry_code, row.date, adjusted_timestamp, row.c, self.strike_diff, 'CE', self.moneyness)
                 if entry_ticker:
                     logger.info(f"CALL SHORT ENTRY FOUND AT: {current_timestamp}")
