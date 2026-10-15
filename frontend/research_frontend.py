@@ -524,10 +524,11 @@ def portfolios_driver():
         'AVWAP': './tradesheets/avwap/',
         'DONCHAIN': './tradesheets/donchain/',
         'ORBSTOCKS': './tradesheets/orbstocks/',
-        'EODHEDGE': './tradesheets/eodhedge/'
+        'EODHEDGE': './tradesheets/eodhedge/',
+        'DONCHAIN1': './tradesheets/donchain1/',
 
     }
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS', 'EODHEDGE']
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS', 'EODHEDGE', 'DONCHAIN1']
     
     # Select strategies
     strats = st.multiselect('Strategies', strategies)
