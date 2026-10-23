@@ -628,7 +628,7 @@ def portfolios_driver():
         
 
 def strategy_driver():
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS', 'EODHEDGE', 'INTRADAYSCALP']  # both options in the same radio
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS', 'EODHEDGE', 'INTRADAYSCALP', "VWAPHEDGE"]  # both options in the same radio
     selected_strat = st.sidebar.radio('Select A Strategy', strategies, key='pcco_strategy')
     folder_paths = {
         'PCCO_SPOT': './tradesheets/pcco/',
@@ -647,7 +647,8 @@ def strategy_driver():
         'DONCHAIN': './tradesheets/donchain/',
         'ORBSTOCKS': './tradesheets/orbstocks/',
         'EODHEDGE': './tradesheets/eodhedge/',
-        'INTRADAYSCALP': './tradesheets/intradayscalp/'
+        'INTRADAYSCALP': './tradesheets/intradayscalp/',
+        "VWAPHEDGE": "./tradesheets/vwaphedge/"
     }
 
     initial_margin = st.number_input('Initial Margin', 1, 100000000, key='initial_margin')
