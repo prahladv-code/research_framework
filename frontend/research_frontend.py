@@ -524,9 +524,10 @@ def portfolios_driver():
         'AVWAP': './tradesheets/avwap/',
         'DONCHAIN': './tradesheets/donchain/',
         'ORBSTOCKS': './tradesheets/orbstocks/',
-        'EODHEDGE': './tradesheets/eodhedge/'
+        'EODHEDGE': './tradesheets/eodhedge/',
+        'VWAPHEDGE': './tradesheets/vwaphedge/'
     }
-    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS', 'EODHEDGE']
+    strategies = ['PCCO_SPOT', 'PCCO_OPT', 'PRICEMA', 'PRICEMA_ATR', 'PRICEMA_TRAIL', 'IVIX', 'PRICEMACLOSEFILTER', 'VWAP', 'VWAPTRAIL', 'BOLLINGERSHORT', 'PRICEMABANDS', 'BTST', 'AVWAP', 'DONCHAIN', 'ORBSTOCKS', 'EODHEDGE', 'VWAPHEDGE']
     
     # Select strategies
     strats = st.multiselect('Strategies', strategies)
@@ -800,14 +801,14 @@ def strategy_driver():
         calculate_pl_distribution(folder_path, initial_margin)
 
     elif selected_strat == 'INTRADAYSCALP':
-            folder_path = folder_paths.get(selected_strat)
-            plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
-            calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
-            display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
-            display_correlation_matrix(folder_path)
-            calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
-            calculate_pl_distribution(folder_path, initial_margin)
-            
+        folder_path = folder_paths.get(selected_strat)
+        plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_metrics(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_multi_select_strats(folder_path, initial_margin, slippage_pct, slippage_points)
+        display_correlation_matrix(folder_path)
+        calculate_avergae_optimizations(folder_path, initial_margin, slippage_pct, slippage_points)
+        calculate_pl_distribution(folder_path, initial_margin)
+
     elif selected_strat == "VWAPHEDGE":
         folder_path = folder_paths.get(selected_strat)
         plot_all_eq_curves(folder_path, initial_margin, slippage_pct, slippage_points)
